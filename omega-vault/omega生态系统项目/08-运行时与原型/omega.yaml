@@ -1,0 +1,247 @@
+# Omega 系统本体配置总表
+# =======================
+# 这是 Omega 系统的"身体配置"——把方法论定义转化为系统可读取的自我定义。
+# 运行时会读取此文件来了解：我是谁、我在哪、我能调用什么、我怎么执行任务。
+#
+# @version: 1.0
+# @schema: 见 Omega Manifest Schema.md
+
+omega:
+  name: "omega生态系统项目"
+  full_name: "Omega Personal AI Action Ecology"
+  mode: function_first  # function_first | safety_first | balanced
+  owner: user
+  version: "1.1"
+  description: >
+    功能优先的个人 AI Agent 行动生态系统。
+    强在外部感知、工具学习、工具协调、外部世界连接、
+    Computer Use、文件编辑、数据分析、深度研究、写作产出、
+    行动记忆与 Skill 进化。
+
+paths:
+  vault_path: "../omega-vault"
+  runtime_path: "."
+  data_path: "../omega-data"
+  workspace_path: "../omega-workspace"
+  assets_path: "../omega-assets"
+  backups_path: "../backups"
+  temp_path: "../omega-workspace/temp"
+  sandbox_path: "../omega-workspace/sandbox"
+  outputs_path: "../omega-workspace/outputs"
+
+runtime:
+  orchestrator: langgraph       # langgraph | agents_sdk | custom
+  primary_executor: claude_code  # claude_code | codex | local_agent
+  fallback_executor: codex       # 主执行器不可用时的备选
+  browser_automation: playwright # playwright | puppeteer | selenium
+  sandbox: docker                # docker | firecracker | gvisor
+  sandbox_image: "omega-sandbox:latest"
+  sandbox_memory_limit: "4GB"
+  sandbox_cpu_limit: "2"
+  sandbox_timeout: 600           # 秒
+  max_concurrent_tasks: 3
+  task_queue_backend: postgres
+
+interfaces:
+  cli:
+    enabled: true
+    entry_point: "omega"
+    commands:
+      - task       # omega task "描述"
+      - status     # omega status
+      - approve    # omega approve <task_id>
+      - radar      # omega radar
+      - bench      # omega bench
+  web:
+    enabled: false               # MFE 阶段先不启用
+    host: "127.0.0.1"
+    port: 8420
+    auth: local_only
+  daemon:
+    enabled: false               # 阶段 2 启用
+    poll_interval: 5             # 秒
+    auto_start: false
+
+memory:
+  obsidian:
+    enabled: true
+    vault_path: "../omega-vault"
+  zotero:
+    enabled: true
+    storage_path: ""             # 自动检测
+    pdf_assets_path: "../omega-vault/assets/zotero"
+  qdrant:
+    enabled: false               # 阶段 2 启用
+    host: "127.0.0.1"
+    port: 6333
+    collection: "omega_knowledge"
+    vector_size: 1536
+  postgres:
+    enabled: false               # 阶段 2 启用
+    host: "127.0.0.1"
+    port: 5432
+    database: "omega"
+    tables:
+      - action_memory
+      - tool_reputation
+      - task_logs
+      - skill_registry
+      - agent_registry
+
+tools:
+  registry: "./registries/tools.yaml"
+  mcp_config: "./mcp/mcp-config.json"
+  skills_path: "./skills"
+  workflows_path: "./workflows"
+
+  # 核心工具适配器（MFE 阶段必需）
+  core_adapters:
+    - pubmed_adapter
+    - zotero_adapter
+    - obsidian_adapter
+    - browser_adapter
+    - python_sandbox_adapter
+    - file_editor_adapter
+    - claude_code_adapter
+    - notebooklm_adapter
+
+  # 创意与可视化工具适配器（阶段 2+）
+  creative_adapters:
+    - blender_adapter
+    - manim_adapter
+    - ffmpeg_adapter
+    - image_generation_adapter
+    - tts_adapter
+    - subtitle_adapter
+
+routing:
+  router: tool_agent_router
+  mode: static_then_scored       # static → 加权评分 → 动态权重（演进路径）
+  task_types: "./schemas/task-types.yaml"
+  capabilities: "./schemas/capabilities.yaml"
+  default_policy: function_first
+  scoring_dimensions:            # 12 维评分（详见 Tool-Agent Router）
+    - task_fit: 0.20
+    - success_rate: 0.18
+    - reputation: 0.12
+    - cost: 0.10
+    - speed: 0.08
+    - context_window: 0.06
+    - automation: 0.08
+    - output_quality: 0.10
+    - risk_level: 0.06
+    - rollback: 0.04
+    - skill_coverage: 0.06
+    - domain_fit: 0.08
+
+planning:
+  planner: dynamic_task_planner
+  max_decomposition_depth: 5
+  parallel_execution: true
+  auto_retry: true
+  max_retries: 2
+
+safety:
+  principle: "risk_changes_path_not_goal"
+  # 风险改变执行路径，不取消功能目标
+
+  risk_levels:
+    low:
+      action: auto               # 自动执行
+      examples: ["读取文件", "搜索文献", "数据分析"]
+    medium:
+      action: sandbox            # 沙箱中执行
+      examples: ["运行未知脚本", "安装新 Python 包", "试用新工具"]
+    high:
+      action: confirm            # 等待用户确认
+      examples: ["写入正式知识层", "调用付费 API", "修改系统配置"]
+    critical:
+      action: confirm_with_preview  # 预览+确认
+      examples: ["提交网页表单", "发送邮件", "删除文件", "发布内容"]
+
+  forbidden:
+    - "使用用户凭证自动登录外部平台"
+    - "提交网页表单（必须由人类点击提交）"
+    - "修改核心安全规则"
+    - "向外部 AI 发送用户敏感信息"
+
+  rollback:
+    enabled: true
+    git_tracked_paths: ["../omega-vault", "./skills", "./workflows"]
+    max_rollback_depth: 10       # 最多回滚 10 次操作
+
+evolution:
+  auto_evolve:
+    - skill_version_upgrade      # 成功率提升 → 自动升级版本号
+    - tool_substitution           # 连续失败 → 切换到高信誉替代工具
+    - workflow_parallelization    # 无依赖步骤自动并行化
+    - dead_link_repair            # 死链自动修复
+  confirm_evolve:
+    - skill_promotion             # 候选 → 活跃
+    - new_tool_integration        # 沙箱 → 生产
+    - agent_persona_change        # Agent 行为偏好修改
+    - core_workflow_change        # 核心工作流重编排
+  forbidden_evolve:
+    - core_rules_change           # CLAUDE.md / omega.yaml 修改
+    - autonomy_level_increase      # L2→L1→L0
+    - new_agent_creation
+    - system_boundary_expansion
+
+domains:
+  academic_research:
+    enabled: true
+    tools: [pubmed, semantic_scholar, zotero, pandoc, latex]
+    agents: [researcher, academic_writer, critic, journal_matcher]
+
+  medical_research:
+    enabled: true
+    tools: [pubmed, zotero, r_metafor, robvis, grade_tools]
+    agents: [medical_evidence_agent, researcher, data_analyst, academic_writer]
+
+  data_analysis:
+    enabled: true
+    tools: [python, r, docker, postgres]
+    agents: [data_analyst, coder]
+
+  scientific_visualization:
+    enabled: true                 # 🆕 新增
+    tools: [blender, manim, ffmpeg, image_generation, tts]
+    agents: [visualization_director, storyboard_agent, animation_agent,
+             narration_agent, scientific_accuracy_critic]
+
+  creative_production:
+    enabled: true                 # 🆕 新增
+    tools: [blender, manim, ffmpeg, davinci_resolve, figma, canva,
+            image_generation, video_generation, tts, subtitle]
+    agents: [visualization_director, animation_agent, asset_generation_agent,
+             video_editing_agent, narration_agent, aesthetic_critic]
+
+  tool_learning:
+    enabled: true
+    tools: [toolsmith_lite, radar_scanner, sandbox]
+    agents: [coder, researcher]
+
+  system_maintenance:
+    enabled: true
+    tools: [obsidian_cli, git, docker]
+    agents: [knowledge_steward]
+
+notifications:
+  enabled: false                  # MFE 阶段先在终端输出
+  channels:
+    - type: terminal
+      enabled: true
+    - type: obsidian_notice
+      enabled: false
+    - type: desktop_notification
+      enabled: false
+
+logging:
+  level: info                    # debug | info | warning | error
+  format: structured             # structured (JSON) | human_readable
+  rotation: daily
+  retention_days: 90
+  paths:
+    agent_logs: "../omega-data/logs/agent_logs"
+    tool_logs: "../omega-data/logs/tool_logs"
+    system_logs: "../omega-data/logs/system_logs"

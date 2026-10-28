@@ -1,0 +1,392 @@
+# Omega 冷启动路由表（静态 YAML）
+# =================================
+# MFE 阶段使用此静态表做初始路由。阶段 2 升级为动态评分路由。
+# 每条路由映射：task_type → primary_tool + fallback_tool + agent
+# Codex 构建时此文件放入 omega-runtime/config/routing_table.yaml
+#
+# 路由表只引用稳定 capability role；具体 provider/model 由 Engine Resolver 动态发现。
+# Codex/Codex CLI 为工程主链，OpenAI 为运行时次主，Claude Messages 兼容端点仅备用。
+# 禁止原生 Anthropic；NotebookLM 不属于本系统；本地模型仅显式灾备。
+
+routing_mode: static_then_scored
+version: "0.4.0"
+model_policy_source: model_capabilities.yaml
+
+# ── 说明 ──
+# 本表定义 task_type → stage → tool/agent 的静态路由。
+# primary_tool 是"偏好"——Engine Resolver 在运行时会按 api_tiers.yaml
+# 检查 primary 是否可用，不可用则自动降级到 fallback。
+# router agent（工具路由决策师）是 Planner 内部调用的程序化子 Agent。
+
+# ── 任务类型 → 工具/Agent 映射 ──
+routes:
+  # ═══════════════════════════════════════════
+  # 知识摄取（economical_general 能力角色）
+  # ═══════════════════════════════════════════
+  - task_type: literature_search
+    stages:
+      - stage: perception
+        required_capabilities: [AcademicSearch, MetadataRetrieval]
+        primary_tool: pubmed_api
+        fallback_tool: semantic_scholar_api
+        agent: researcher
+      - stage: extraction
+        required_capabilities: [TextGeneration, SummaryExtraction]
+        primary_tool: economical_general
+        fallback_tool: quality_reasoning
+        agent: researcher
+      - stage: delivery
+        required_capabilities: [WriteWiki, WikiLink]
+        primary_tool: obsidian_vault
+        fallback_tool: filesystem_mcp
+        agent: knowledge_steward
+
+  - task_type: knowledge_query
+    stages:
+      - stage: perception
+        required_capabilities: [VectorSearch, SemanticSearch]
+        primary_tool: qdrant
+        fallback_tool: postgresql
+        agent: researcher
+      - stage: synthesis
+        required_capabilities: [TextGeneration, ComplexReasoning]
+        primary_tool: economical_general
+        fallback_tool: quality_reasoning
+        agent: writer
+      - stage: delivery
+        required_capabilities: [WriteWiki, WikiLink]
+        primary_tool: obsidian_vault
+        fallback_tool: filesystem_mcp
+        agent: knowledge_steward
+
+  # ═══════════════════════════════════════════
+  # 数据分析（确定性工具优先，语言步骤走能力角色）
+  # ═══════════════════════════════════════════
+  - task_type: data_analysis
+    stages:
+      - stage: perception
+        required_capabilities: [FileProcessing, DataLoading]
+        primary_tool: python_data_science
+        fallback_tool: python_sandbox
+        agent: data_analyst
+      - stage: analysis
+        required_capabilities: [StatisticalModeling, DataAnalysis]
+        primary_tool: python_data_science
+        fallback_tool: python_sandbox
+        agent: data_analyst
+      - stage: transformation
+        required_capabilities: [ChartGeneration]
+        primary_tool: python_data_science
+        fallback_tool: python_sandbox
+        agent: data_analyst
+      - stage: delivery
+        required_capabilities: [DocumentRendering]
+        primary_tool: pandoc
+        fallback_tool: obsidian_vault
+        agent: writer
+
+  # ═══════════════════════════════════════════
+  # 代码生成（Codex engineering_primary 主链）
+  # ═══════════════════════════════════════════
+  - task_type: code_generation
+    stages:
+      - stage: perception
+        required_capabilities: [CodeGeneration, ComplexReasoning]
+        primary_tool: codex_cli
+        fallback_tool: openai_api
+        agent: coder
+      - stage: execution
+        required_capabilities: [PythonExecution]
+        primary_tool: python_sandbox
+        fallback_tool: codex_cli
+        agent: coder
+      - stage: review
+        required_capabilities: [CodeReview]
+        primary_tool: quality_reasoning
+        fallback_tool: economical_general
+        agent: critic
+
+  # ═══════════════════════════════════════════
+  # 浏览器自动化（无语言引擎依赖）
+  # ═══════════════════════════════════════════
+  - task_type: browser_automation
+    stages:
+      - stage: execution
+        required_capabilities: [BrowserControl, Screenshot, FormFill]
+        primary_tool: playwright_mcp
+        fallback_tool: null
+        agent: browser_operator
+      - stage: delivery
+        required_capabilities: [Screenshot]
+        primary_tool: playwright_mcp
+        fallback_tool: null
+        agent: browser_operator
+
+  # ═══════════════════════════════════════════
+  # 学术写作（质量敏感——Engine Resolver 按 quality_sensitive 链解析）
+  # provider 链由 model_capabilities.yaml 动态解析
+  # ═══════════════════════════════════════════
+  - task_type: academic_writing
+    stages:
+      - stage: synthesis
+        required_capabilities: [TextGeneration, LongContext, AcademicWriting]
+        primary_tool: quality_reasoning
+        fallback_tool: economical_general
+        agent: writer
+        engine_strategy: quality_sensitive
+        note: "quality_reasoning 由 Engine Resolver 按 Codex→OpenAI→兼容 Claude Messages→国产备用链解析"
+      - stage: review
+        required_capabilities: [CodeReview, FactChecking]
+        primary_tool: quality_reasoning
+        fallback_tool: economical_general
+        agent: critic
+        engine_strategy: quality_sensitive
+      - stage: delivery
+        required_capabilities: [FormatConversion, DocumentRendering]
+        primary_tool: pandoc
+        fallback_tool: quality_reasoning
+        agent: writer
+
+  # ═══════════════════════════════════════════
+  # 工具学习（Codex engineering_primary 主链）
+  # ═══════════════════════════════════════════
+  - task_type: tool_learning
+    stages:
+      - stage: perception
+        required_capabilities: [PackageInstall, FileDownload]
+        primary_tool: python_sandbox
+        fallback_tool: codex_cli
+        agent: toolsmith
+        sandbox: omega-sandbox-net
+      - stage: execution
+        required_capabilities: [ToolExecution, CLIExecution]
+        primary_tool: python_sandbox
+        fallback_tool: codex_cli
+        agent: toolsmith
+        sandbox: omega-sandbox
+      - stage: review
+        required_capabilities: [CodeReview, EvaluationReport]
+        primary_tool: economical_general
+        fallback_tool: quality_reasoning
+        agent: critic
+
+  # ═══════════════════════════════════════════
+  # 工具对比（实时搜索 + 质量分析）
+  # 搜索链: Perplexity → Brave → Playwright；不可用时明确报告无实时搜索
+  # ═══════════════════════════════════════════
+  - task_type: tool_comparison
+    stages:
+      - stage: perception
+        required_capabilities: [WebSearch, DocumentationRead]
+        primary_tool: perplexity_api
+        fallback_tool: brave_search_mcp
+        agent: researcher
+        engine_strategy: realtime_search
+        note: "Engine Resolver 按 realtime_search 链解析：Perplexity→Brave→Playwright；不可用时 fail closed"
+      - stage: analysis
+        required_capabilities: [ComparisonAnalysis, Scoring]
+        primary_tool: quality_reasoning
+        fallback_tool: economical_general
+        agent: medical_evidence_agent
+        engine_strategy: quality_sensitive
+      - stage: delivery
+        required_capabilities: [WriteWiki, WikiLink]
+        primary_tool: obsidian_vault
+        fallback_tool: filesystem_mcp
+        agent: writer
+
+  # ═══════════════════════════════════════════
+  # 文献综述（混合——提取成本敏感，合成质量敏感）
+  # 合成/审查阶段由 quality_sensitive 能力角色解析
+  # ═══════════════════════════════════════════
+  - task_type: literature_review
+    stages:
+      - stage: perception
+        required_capabilities: [AcademicSearch, CitationNetwork]
+        primary_tool: pubmed_api
+        fallback_tool: semantic_scholar_api
+        agent: researcher
+      - stage: extraction
+        required_capabilities: [TextGeneration, SummaryExtraction, EvidenceAssessment]
+        primary_tool: economical_general
+        fallback_tool: quality_reasoning
+        agent: medical_evidence_agent
+        engine_strategy: cost_sensitive
+      - stage: synthesis
+        required_capabilities: [TextGeneration, LongContext, AcademicWriting]
+        primary_tool: quality_reasoning
+        fallback_tool: economical_general
+        agent: writer
+        engine_strategy: quality_sensitive
+      - stage: review
+        required_capabilities: [CodeReview, FactChecking]
+        primary_tool: quality_reasoning
+        fallback_tool: economical_general
+        agent: critic
+        engine_strategy: quality_sensitive
+      - stage: delivery
+        required_capabilities: [DocumentRendering, FormatConversion]
+        primary_tool: pandoc
+        fallback_tool: obsidian_vault
+        agent: writer
+
+  # ═══════════════════════════════════════════
+  # 任务规划（质量敏感——Engine Resolver 按 quality_sensitive 链解析）
+  # ═══════════════════════════════════════════
+  - task_type: task_planning
+    stages:
+      - stage: perception
+        required_capabilities: [ComplexReasoning, TaskDecomposition]
+        primary_tool: quality_reasoning
+        fallback_tool: economical_general
+        agent: planner
+        engine_strategy: quality_sensitive
+      - stage: review
+        required_capabilities: [CodeReview]
+        primary_tool: quality_reasoning
+        fallback_tool: economical_general
+        agent: critic
+        engine_strategy: quality_sensitive
+
+  # ═══════════════════════════════════════════
+  # 实时搜索（Perplexity → Brave → Playwright；无静默训练知识替代）
+  # ═══════════════════════════════════════════
+  - task_type: realtime_search
+    stages:
+      - stage: perception
+        required_capabilities: [RealTimeSearch, SourceCitation]
+        primary_tool: perplexity_api
+        fallback_tool: brave_search_mcp
+        agent: researcher
+        engine_strategy: realtime_search
+        note: "Engine Resolver 按 realtime_search 链解析：Perplexity→Brave→Playwright"
+      - stage: delivery
+        required_capabilities: [WriteWiki, WikiLink]
+        primary_tool: obsidian_vault
+        fallback_tool: filesystem_mcp
+        agent: knowledge_steward
+
+  # ═══════════════════════════════════════════
+  # 知识摄取（成本敏感）
+  # ═══════════════════════════════════════════
+  - task_type: knowledge_ingestion
+    stages:
+      - stage: perception
+        required_capabilities: [FileProcessing, DocumentRead]
+        primary_tool: python_sandbox
+        fallback_tool: codex_cli
+        agent: researcher
+      - stage: extraction
+        required_capabilities: [TextGeneration, SummaryExtraction]
+        primary_tool: economical_general
+        fallback_tool: quality_reasoning
+        agent: researcher
+      - stage: delivery
+        required_capabilities: [WriteWiki, WikiLink]
+        primary_tool: obsidian_vault
+        fallback_tool: filesystem_mcp
+        agent: knowledge_steward
+
+  # ═══════════════════════════════════════════
+  # Meta 分析（质量敏感——证据评估按 quality_sensitive 链解析）
+  # ═══════════════════════════════════════════
+  - task_type: meta_analysis
+    stages:
+      - stage: perception
+        required_capabilities: [AcademicSearch, CitationNetwork]
+        primary_tool: pubmed_api
+        fallback_tool: semantic_scholar_api
+        agent: researcher
+      - stage: analysis
+        required_capabilities: [StatisticalModeling, DataAnalysis]
+        primary_tool: python_data_science
+        fallback_tool: python_sandbox
+        agent: data_analyst
+      - stage: review
+        required_capabilities: [CodeReview, EvidenceAssessment]
+        primary_tool: quality_reasoning
+        fallback_tool: economical_general
+        agent: medical_evidence_agent
+        engine_strategy: quality_sensitive
+      - stage: delivery
+        required_capabilities: [DocumentRendering]
+        primary_tool: pandoc
+        fallback_tool: obsidian_vault
+        agent: writer
+
+  # ═══════════════════════════════════════════
+  # 文件处理（成本敏感）
+  # ═══════════════════════════════════════════
+  - task_type: file_processing
+    stages:
+      - stage: transformation
+        required_capabilities: [FormatConversion, FileProcessing]
+        primary_tool: pandoc
+        fallback_tool: python_sandbox
+        agent: coder
+      - stage: delivery
+        required_capabilities: [DocumentRendering]
+        primary_tool: pandoc
+        fallback_tool: filesystem_mcp
+        agent: writer
+
+  # ═══════════════════════════════════════════
+  # 医学研究（混合——提取/分析成本敏感，合成/审查质量敏感）
+  # 合成/审查由 quality_sensitive 能力角色解析
+  # ═══════════════════════════════════════════
+  - task_type: medical_research
+    stages:
+      - stage: perception
+        required_capabilities: [AcademicSearch, MetadataRetrieval]
+        primary_tool: pubmed_api
+        fallback_tool: semantic_scholar_api
+        agent: researcher
+      - stage: extraction
+        required_capabilities: [TextGeneration, SummaryExtraction, EvidenceAssessment]
+        primary_tool: economical_general
+        fallback_tool: quality_reasoning
+        agent: medical_evidence_agent
+        engine_strategy: cost_sensitive
+      - stage: analysis
+        required_capabilities: [StatisticalModeling, DataAnalysis]
+        primary_tool: python_data_science
+        fallback_tool: python_sandbox
+        agent: data_analyst
+      - stage: synthesis
+        required_capabilities: [TextGeneration, LongContext, AcademicWriting]
+        primary_tool: quality_reasoning
+        fallback_tool: economical_general
+        agent: writer
+        engine_strategy: quality_sensitive
+      - stage: review
+        required_capabilities: [CodeReview, FactChecking]
+        primary_tool: quality_reasoning
+        fallback_tool: economical_general
+        agent: critic
+        engine_strategy: quality_sensitive
+      - stage: delivery
+        required_capabilities: [DocumentRendering, FormatConversion]
+        primary_tool: pandoc
+        fallback_tool: obsidian_vault
+        agent: writer
+
+  # ═══════════════════════════════════════════
+  # 系统维护（成本敏感）
+  # ═══════════════════════════════════════════
+  - task_type: system_maintenance
+    stages:
+      - stage: perception
+        required_capabilities: [FileRead, DirectoryList]
+        primary_tool: filesystem_mcp
+        fallback_tool: obsidian_vault
+        agent: knowledge_steward
+      - stage: execution
+        required_capabilities: [WriteWiki, WikiLink, FileWrite]
+        primary_tool: obsidian_vault
+        fallback_tool: filesystem_mcp
+        agent: knowledge_steward
+      - stage: review
+        required_capabilities: [CodeReview]
+        primary_tool: economical_general
+        fallback_tool: quality_reasoning
+        agent: critic

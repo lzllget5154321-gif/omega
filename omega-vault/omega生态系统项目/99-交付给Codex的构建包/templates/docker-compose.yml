@@ -1,0 +1,121 @@
+# Omega Docker Compose 编排模板
+# ==============================
+# 启动 Omega MFE 所需的所有 Docker 服务。
+# Codex 构建时此文件复制到 omega-runtime/docker-compose.yml 并根据实际环境调整。
+#
+# 使用方法：
+#   docker compose up -d              # 启动所有服务
+#   docker compose ps                  # 查看状态
+#   docker compose down               # 停止所有服务
+#   docker compose down -v            # 停止并删除数据卷（⚠️ 需要用户确认）
+
+version: "3.9"
+
+services:
+  # ═══════════════════════════════════════════
+  # PostgreSQL 17 + pgvector
+  # ═══════════════════════════════════════════
+  postgres:
+    image: pgvector/pgvector:pg17
+    container_name: omega-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: omega
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?err}
+      POSTGRES_DB: omega
+    ports:
+      - "127.0.0.1:5432:5432"  # 仅本地访问，不对外暴露
+    volumes:
+      - ../omega-data/postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U omega"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - omega-net
+
+  # ═══════════════════════════════════════════
+  # Qdrant 向量数据库 v1.14.1
+  # ═══════════════════════════════════════════
+  qdrant:
+    image: qdrant/qdrant:v1.14.1
+    container_name: omega-qdrant
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:6333:6333"  # HTTP API + Web Dashboard
+      - "127.0.0.1:6334:6334"  # gRPC API
+    volumes:
+      - ../omega-data/qdrant:/qdrant/storage
+    environment:
+      QDRANT__SERVICE__GRPC_PORT: 6334
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:6333/collections"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+    networks:
+      - omega-net
+
+  # ═══════════════════════════════════════════
+  # Execution Sandbox（无网络——安全执行）
+  # ═══════════════════════════════════════════
+  omega-sandbox:
+    build:
+      context: .
+      dockerfile: Dockerfile.sandbox
+    image: omega-sandbox:latest
+    container_name: omega-sandbox
+    restart: "no"
+    network_mode: "none"        # 完全无网络
+    read_only: true              # 只读根文件系统
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 4g
+    cpus: 2
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=512m
+    volumes:
+      - ../omega-workspace/sandbox:/workspace:rw
+      - ../omega-workspace/outputs:/outputs:rw
+    working_dir: /workspace
+    command: ["tail", "-f", "/dev/null"]  # 保持运行，通过 docker exec 执行任务
+
+  # ═══════════════════════════════════════════
+  # Toolsmith Sandbox（有限网络——安装工具）
+  # ═══════════════════════════════════════════
+  omega-sandbox-net:
+    build:
+      context: .
+      dockerfile: Dockerfile.sandbox-net
+    image: omega-sandbox-net:latest
+    container_name: omega-sandbox-net
+    restart: "no"
+    # 有限网络：仅允许 PyPI / npm / GitHub / 官方文档
+    # 网络过滤由 sandbox-net-filter.sh 在 entrypoint 中通过 iptables 实施
+    network_mode: "bridge"
+    cap_add:
+      - NET_ADMIN                  # 允许 iptables 规则设置
+    dns:
+      - 8.8.8.8
+      - 1.1.1.1
+    read_only: false               # 需要写入 pip/npm 安装的包
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 4g
+    cpus: 2
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=1g
+    volumes:
+      - ../omega-workspace/sandbox:/workspace:rw
+      - ../omega-workspace/outputs:/outputs:rw
+    working_dir: /workspace
+    environment:
+      ALLOWED_DOMAINS: "pypi.org files.pythonhosted.org registry.npmjs.org github.com raw.githubusercontent.com docs.python.org readthedocs.io"
+    # entrypoint 在容器启动时自动执行网络过滤
+    entrypoint: ["/bin/bash", "-c", "/usr/local/bin/sandbox-net-filter.sh && exec tail -f /dev/null"]
+
+networks:
+  omega-net:
+    driver: bridge
+    internal: true  # 不暴露到宿主机外部网络

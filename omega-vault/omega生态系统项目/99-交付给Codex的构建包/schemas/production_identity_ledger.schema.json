@@ -1,0 +1,147 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://omega.local/schemas/production_identity_ledger.schema.json",
+  "title": "Omega Production Identity Ledger",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "updated_at",
+    "status",
+    "scope",
+    "policy",
+    "source_identity",
+    "production_runtime",
+    "receipts",
+    "verification_contract"
+  ],
+  "properties": {
+    "schema_version": { "const": "1.0.0" },
+    "updated_at": { "type": "string", "format": "date-time" },
+    "status": { "const": "CLEAR" },
+    "scope": { "type": "string", "minLength": 1 },
+    "policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "primary_provider",
+        "openai_api_role",
+        "compatible_claude_messages_role",
+        "native_anthropic_allowed",
+        "notebooklm_in_scope",
+        "local_model_mode",
+        "secret_values_recorded"
+      ],
+      "properties": {
+        "primary_provider": { "const": "codex" },
+        "openai_api_role": { "const": "secondary_runtime" },
+        "compatible_claude_messages_role": { "const": "fallback_only" },
+        "native_anthropic_allowed": { "const": false },
+        "notebooklm_in_scope": { "const": false },
+        "local_model_mode": { "const": "explicit_disaster_recovery_only" },
+        "secret_values_recorded": { "const": false }
+      }
+    },
+    "source_identity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "component",
+        "identity_kind",
+        "main_path",
+        "main_sha256",
+        "main_size_bytes",
+        "manifest_sha256",
+        "styles_sha256",
+        "receipt_id"
+      ],
+      "properties": {
+        "component": { "const": "obsidian_realclaudian" },
+        "identity_kind": { "const": "file_sha256_not_git_commit" },
+        "main_path": { "type": "string", "minLength": 1 },
+        "main_sha256": { "$ref": "#/$defs/sha256" },
+        "main_size_bytes": { "type": "integer", "minimum": 1 },
+        "manifest_sha256": { "$ref": "#/$defs/sha256" },
+        "styles_sha256": { "$ref": "#/$defs/sha256" },
+        "receipt_id": { "type": "string", "minLength": 1 }
+      }
+    },
+    "production_runtime": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["component", "root", "repository_commit_status", "image", "image_id", "receipt_id"],
+      "properties": {
+        "component": { "const": "omega_system" },
+        "root": { "type": "string", "minLength": 1 },
+        "repository_commit_status": { "enum": ["no_commits_yet", "committed"] },
+        "image": { "type": "string", "minLength": 1 },
+        "image_id": { "type": "string", "pattern": "^sha256:[a-f0-9]{64}$" },
+        "receipt_id": { "type": "string", "minLength": 1 }
+      }
+    },
+    "receipts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["effective", "superseded"],
+      "properties": {
+        "effective": {
+          "type": "array",
+          "minItems": 2,
+          "items": { "$ref": "#/$defs/effectiveReceipt" }
+        },
+        "superseded": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/supersededReceipt" }
+        }
+      }
+    },
+    "verification_contract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "external_paths_are_sync_time_evidence",
+        "portable_package_gate_checks_structure_and_internal_references",
+        "fresh_production_claims_require_rehash_and_new_receipt",
+        "historical_receipts_are_immutable"
+      ],
+      "properties": {
+        "external_paths_are_sync_time_evidence": { "const": true },
+        "portable_package_gate_checks_structure_and_internal_references": { "const": true },
+        "fresh_production_claims_require_rehash_and_new_receipt": { "const": true },
+        "historical_receipts_are_immutable": { "const": true }
+      }
+    }
+  },
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "effectiveReceipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "path", "sha256", "status", "authority"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "path": { "type": "string", "minLength": 1 },
+        "sha256": { "$ref": "#/$defs/sha256" },
+        "status": { "const": "PASS" },
+        "authority": {
+          "enum": ["obsidian_claudian_bundle_identity", "omega_runtime_production"]
+        }
+      }
+    },
+    "supersededReceipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "path", "sha256", "status", "superseded_by"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "path": { "type": "string", "minLength": 1 },
+        "sha256": { "$ref": "#/$defs/sha256" },
+        "status": { "const": "SUPERSEDED" },
+        "superseded_by": { "type": "string", "minLength": 1 }
+      }
+    }
+  }
+}

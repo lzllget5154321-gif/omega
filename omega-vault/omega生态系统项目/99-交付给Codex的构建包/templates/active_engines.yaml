@@ -1,0 +1,50 @@
+# Omega active provider registry template
+# Generated from api_tiers.yaml and model_capabilities.yaml; secrets never belong here.
+schema_version: "3.0"
+generated_at: "<runtime fills>"
+
+providers:
+  - id: codex_session
+    transport: codex_cli_session
+    credential_mode: user_session
+    status: available
+    model_id: null
+    model_source: current_runtime
+  - id: openai_api
+    transport: openai_responses
+    status: "<available | deferred | unavailable_confirmed>"
+    model_id: null
+    model_source: "<discovered | environment_override | provider_default>"
+  - id: openrouter_claude_messages
+    transport: claude_messages
+    status: "<available | deferred | unavailable_confirmed>"
+    model_id: null
+    model_source: "<discovered | environment_override | provider_default>"
+  - id: domestic_claude_messages
+    transport: claude_messages
+    status: "<available | deferred | unavailable_confirmed>"
+    model_id: null
+    model_source: "<discovered | environment_override | provider_default>"
+    guard: "base URL must not resolve to api.anthropic.com"
+  - id: domestic_openai_compatible
+    transport: openai_compatible
+    status: "<available | deferred | unavailable_confirmed>"
+    provider_id: null
+    model_id: null
+    model_source: "<discovered | environment_override | provider_default>"
+  - id: local_disaster_recovery
+    transport: openai_compatible_local
+    status: disabled
+    model_id: null
+    activation: explicit_user_action_only
+
+runtime_guarantees:
+  native_anthropic_api: forbidden
+  notebooklm: excluded
+  preserve_unknown_ids: true
+  preserve_unknown_settings: true
+  atomic_update: true
+  previous_file_retained: true
+
+unknown_entries: []
+# Migration must round-trip entries it does not understand into unknown_entries unchanged.

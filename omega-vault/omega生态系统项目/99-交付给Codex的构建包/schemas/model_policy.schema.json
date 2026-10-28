@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://omega-system/schemas/model_policy.schema.json",
+  "title": "Omega Codex-first Model Capability Policy",
+  "type": "object",
+  "required": ["schema_version", "policy", "capability_roles", "providers", "migration"],
+  "properties": {
+    "schema_version": {"const": "3.0"},
+    "policy": {
+      "type": "object",
+      "required": ["primary_build_surface", "primary_runtime_provider", "native_anthropic_api", "notebooklm"],
+      "properties": {
+        "primary_build_surface": {"const": "codex_cli"},
+        "primary_runtime_provider": {"const": "openai"},
+        "native_anthropic_api": {"const": "forbidden"},
+        "notebooklm": {"const": "excluded"}
+      }
+    },
+    "capability_roles": {"type": "object", "minProperties": 1},
+    "providers": {
+      "type": "object",
+      "propertyNames": {"not": {"pattern": "^[Aa][Nn][Tt][Hh][Rr][Oo][Pp][Ii][Cc]$"}},
+      "additionalProperties": {"$ref": "#/$defs/provider"}
+    },
+    "migration": {"type": "object"}
+  },
+  "$defs": {
+    "provider": {
+      "type": "object",
+      "properties": {
+        "provider": {"not": {"pattern": "^[Aa][Nn][Tt][Hh][Rr][Oo][Pp][Ii][Cc]$"}},
+        "api_key_env_var": {"not": {"const": "ANTHROPIC_API_KEY"}},
+        "default_base_url": {
+          "type": "string",
+          "not": {"pattern": "^[Hh][Tt][Tt][Pp][Ss]?://(?:[^/]*\\.)?[Aa][Nn][Tt][Hh][Rr][Oo][Pp][Ii][Cc]\\.[Cc][Oo][Mm](?:[/:]|$)"}
+        }
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": true
+}

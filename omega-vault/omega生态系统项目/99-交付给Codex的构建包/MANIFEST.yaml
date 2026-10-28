@@ -1,0 +1,458 @@
+# Omega 构建包 — 完整文件清单
+# ================================
+# Codex 可用此文件交叉验证所有设计文档是否齐全。
+# 如果某个 required 文件缺失，立即停止并报告。
+#
+# 所需文件总数: 26 个设计文件 + 58 个构建辅助文件 + 1 个嵌入式脚本引用 = 85 项清单条目（对应 84 个物理文件，其中 1 个嵌入式脚本非独立文件）
+# 预期位置: ../omega-vault/omega生态系统项目/
+
+manifest_version: "3.2"
+target_omega_version: "v3.0"
+build_target: "Omega-Lite MFE (阶段 1 先锋物种)"
+constraint: "Codex-first 能力角色架构——Codex 当前会话主链，OpenAI API 次主，OpenRouter/国产 Claude Messages 仅备用，禁止原生 Anthropic，NotebookLM 排除，本地模型仅显式灾备；运行时动态发现模型并原子迁移，未知 ID/设置/历史原样保留。"
+supersession: "key_changes_v3_2 之前所有 Claude-first、固定 GPT/DeepSeek 或自动本地回退叙述仅为历史记录，不得驱动 current 配置。"
+
+# 文件分类统计
+build_package_files:
+  total: 85
+  required: 78
+  optional: 7
+  breakdown:
+    design_docs: 26        # omega-vault 中的设计文件（不含 OMEGA_TERMINAL.md，该文件在 build_meta）
+    design_embedded: 1     # 嵌入式脚本引用（构建指导书内嵌，非独立文件）
+    schemas: 10            # JSON Schema 定义（含 current/legacy agent、model policy 与生产身份账本）
+    config: 12             # 含集中能力角色真相源与已登记兼容 Orchestrator prompt
+    fixtures: 5            # 验收任务 + 测试数据
+    scripts: 6             # 自动化脚本（含 URL policy、resolver/migrator 与 strict gate）
+    tests: 3               # Python + PowerShell 对抗测试
+    templates: 9           # Docker + MCP + 上下文管理 + 活跃引擎模板 + VISION_TRACE + BENCHMARK_CATALOG
+    build_meta: 13         # AGENTS / prompts / checklists / README / MANIFEST / production ledger / deployment contract / terminal + 升级包文件
+
+files:
+  # ── 核心构建规范 ──
+  - path: "omega生态系统项目/00-总览/Omega 构建指导书 — 给 Codex 的系统构造规范.md"
+    required: true
+    description: "主构建规范——Codex 必须按此文件执行构建"
+
+  # ── 总览层 ──
+  - path: "omega生态系统项目/00-总览/omega生态系统项目-总说明.md"
+    required: true
+    description: "项目总入口和快速导航"
+
+  - path: "omega生态系统项目/00-总览/Omega运行形态与本体文件说明.md"
+    required: true
+    description: "三层架构定义 + 完整目录树 + 部署演进路线"
+
+  - path: "omega生态系统项目/00-总览/omega生态系统项目-版本演化图.md"
+    required: false
+    description: "版本历史背景（非构建必须，但有助于理解设计演化）"
+
+  # ── 方法论层 ──
+  - path: "omega生态系统项目/01-方法论/Omega 最终完整方法论.md"
+    required: true
+    description: "系统总纲——定义 Omega 是什么、为什么、核心原则"
+
+  # ── 架构层 ──
+  - path: "omega生态系统项目/02-架构/Tool-Agent Router：最佳工具与最佳执行者选择器.md"
+    required: true
+    description: "12 维评分引擎 + 任务类型分类 + 能力映射"
+
+  - path: "omega生态系统项目/02-架构/Stage-Aware Tool-Agent Router.md"
+    required: true
+    description: "8 个任务阶段 × 动态权重覆盖"
+
+  - path: "omega生态系统项目/02-架构/Dynamic Task Planner：动态任务规划器.md"
+    required: true
+    description: "7 步规划流程 + DAG 生成 + 能力缺口预检测"
+
+  - path: "omega生态系统项目/02-架构/Best-Practice Harvester：最佳实践采集器.md"
+    required: true
+    description: "8 步最佳实践采集→验证→注入→结晶"
+
+  - path: "omega生态系统项目/02-架构/自我解惑与外援调用循环.md"
+    required: true
+    description: "7 类障碍→5 层求助优先级 + 外部 AI 调用协议"
+
+  # ── 能力矩阵层 ──
+  - path: "omega生态系统项目/03-能力矩阵/AI工具生态雷达.md"
+    required: true
+    description: "8 源监控 + 预学习队列 + 周报生成"
+
+  - path: "omega生态系统项目/03-能力矩阵/SOTA Source Hierarchy：顶尖工具来源分级.md"
+    required: true
+    description: "S0-S3 四级来源权威体系 + 多源交叉验证"
+
+  - path: "omega生态系统项目/03-能力矩阵/Model and Tool Lifecycle Manager.md"
+    required: true
+    description: "9 状态生命周期 + 生态演替自动替换"
+
+  - path: "omega生态系统项目/03-能力矩阵/Social Signal Validator.md"
+    required: true
+    description: "社交信号验证器——6 维账号评分 + 分平台策略"
+
+  # ── 任务契约与成果包 ──
+  - path: "omega生态系统项目/04-任务契约与成果包/Multimodal Outcome Package.md"
+    required: true
+    description: "8 种模态成果包 + 目录结构 + 验证标准"
+
+  # ── 运行时与原型 ──
+  - path: "omega生态系统项目/08-运行时与原型/README.md"
+    required: false
+    description: "运行时目录说明"
+
+  - path: "omega生态系统项目/08-运行时与原型/Omega Runtime Architecture.md"
+    required: true
+    description: "11 组件数据流 + 技术选型 + MFE 运行时规范"
+
+  - path: "omega生态系统项目/08-运行时与原型/Omega Manifest Schema.md"
+    required: true
+    description: "omega.yaml 完整字段 schema 文档"
+
+  - path: "omega生态系统项目/08-运行时与原型/omega.yaml"
+    required: false
+    description: "参考配置（新电脑上按构建指导书重写）"
+
+  - path: "omega生态系统项目/08-运行时与原型/Auto-Upgrade Policy.md"
+    required: true
+    description: "四域风险自动升级策略 + 回滚规则"
+
+  # ── 功能基准任务花园 ──
+  - path: "omega生态系统项目/09-功能基准任务花园/README.md"
+    required: true
+    description: "12 个基准闭环定义"
+
+  - path: "omega生态系统项目/09-功能基准任务花园/Tool Benchmark Cards.md"
+    required: true
+    description: "25+ 项工具基准任务卡 + 评分维度"
+
+  # ── 外部 AI 与工具注册表 ──
+  - path: "omega生态系统项目/10-外部AI与工具注册表/README.md"
+    required: false
+    description: "注册表目录说明"
+
+  - path: "omega生态系统项目/10-外部AI与工具注册表/External AI Rolebook.md"
+    required: true
+    description: "20+ 外部 AI/平台生态位完整定义"
+
+  # ── 创意与科学可视化 ──
+  - path: "omega生态系统项目/11-创意与科学可视化/科学动画生产系统.md"
+    required: true
+    description: "9 阶段生产管线 + 4 路线工具链 + 8 个专业 Agent"
+
+  - path: "omega生态系统项目/11-创意与科学可视化/Creative Tool Router.md"
+    required: true
+    description: "12 类创意任务矩阵 + 5 个创意评分维度"
+
+  # ── 辅助脚本（设计文件内嵌） ──
+  - path: "构建指导书中 scripts/setup.ps1"
+    required: false
+    description: "Windows 一键环境配置脚本（嵌入在构建指导书附录 A 中）"
+
+  # ═══════════════════════════════════════════
+  # build-package/ 本目录中的构建辅助文件
+  # ═══════════════════════════════════════════
+
+  # ── 构建元文件 ──
+  - path: "build-package/AGENTS.md"
+    required: true
+    description: "Codex 启动时自动读取——定义项目约定、凭据规则、构建边界、必读设计文件"
+
+  - path: "build-package/DEPLOYMENT_CONTRACT.md"
+    required: true
+    description: "🆕 部署契约——定义'全权部署'的具体边界：Codex 可自动执行 / 必须用户确认 / 永远不自动做的三类操作。Codex 每 Phase 开始前按契约自检"
+
+  - path: "build-package/CODEX_RUN_PROMPT.md"
+    required: true
+    description: "给 Codex 的优化初始提示词模板——可直接复制使用"
+
+  - path: "build-package/BUILD_CHECKLIST.md"
+    required: true
+    description: "四迭代逐项验收清单——每个迭代完成后必须逐条通过才能进入下一迭代。API Key 检查已适配分层降级（至少一个语言引擎非空）"
+
+  - path: "build-package/USER_ACTIONS.md"
+    required: true
+    description: "用户手动操作指南——列出构建过程中所有需要用户动手的步骤，每步含可视化指引（做什么→怎么做→确认成功→常见问题）。构建 Agent 在提示用户时必须引用此文件步骤编号"
+
+  - path: "build-package/README.md"
+    required: false
+    description: "人类可读的交付说明——给用户的步骤指引"
+
+  - path: "build-package/MANIFEST.yaml"
+    required: true
+    description: "本文件——完整文件清单，Codex 构建前交叉验证用"
+
+  - path: "build-package/PRODUCTION_IDENTITY_LEDGER.yaml"
+    required: true
+    description: "独立生产身份状态账本——绑定当前 realclaudian main.js SHA、Omega 生产镜像、有效 receipts 及 supersession，不记录密钥"
+
+  # ── JSON Schema 定义 ──
+  - path: "build-package/schemas/task_contract.schema.json"
+    required: true
+    description: "任务契约 JSON Schema——定义 task_type/complexity/autonomy/quality_profile 等字段约束"
+
+  - path: "build-package/schemas/tool_card.schema.json"
+    required: true
+    description: "工具卡 JSON Schema——定义工具 id/category/capabilities/risk_level/lifecycle 等字段约束"
+
+  - path: "build-package/schemas/agent_card.schema.json"
+    required: true
+    description: "Agent 卡 JSON Schema——定义 Agent id/role/allowed_tools/autonomy_level 等字段约束"
+
+  - path: "build-package/schemas/legacy_agent_card.schema.json"
+    required: true
+    description: "只读兼容输入 Schema——允许未知旧字段与旧模型 ID，但不得直接作为 current Agent Card"
+
+  - path: "build-package/schemas/model_policy.schema.json"
+    required: true
+    description: "Codex-first 模型策略 Schema——拒绝原生 Anthropic provider/credential/URL"
+
+  - path: "build-package/schemas/production_identity_ledger.schema.json"
+    required: true
+    description: "生产身份账本 JSON Schema——强制 Codex-first 范围、SHA 格式、有效/失效 receipt 状态与无密钥声明"
+
+  # ── 种子注册表 ──
+  - path: "build-package/config/model_capabilities.yaml"
+    required: true
+    description: "Codex-first 能力角色、provider 顺序、动态模型发现、未知 ID 保留与原子迁移规则的单一真相源"
+
+  - path: "build-package/config/tools.yaml"
+    required: true
+    description: "Codex/OpenAI 主链、兼容 Claude Messages 备用、国产 OpenAI-compatible 备用及非模型工具注册表"
+
+  - path: "build-package/config/agents.yaml"
+    required: true
+    description: "11 个种子 Agent 注册表——Agent 绑定稳定 capability_role，具体 provider/model 由 Engine Resolver 动态解析"
+
+  - path: "build-package/config/HERMES_ORCHESTRATOR_PROMPT.md"
+    required: true
+    description: "兼容名称下的 Codex-first Orchestrator 提示词；旧 Hermes+Claude 固定团队拓扑已 superseded"
+
+  - path: "build-package/config/.env.example"
+    required: true
+    description: "无密钥环境模板——OpenAI 主 provider、兼容备用 provider、动态模型覆盖与显式本地灾备开关"
+
+  # ── 验收测试数据与任务 ──
+  - path: "build-package/fixtures/tasks/literature_ingestion_task.md"
+    required: true
+    description: "闭环 1 验收任务——SGLT2 抑制剂文献搜索与知识摄取"
+
+  - path: "build-package/fixtures/tasks/data_analysis_task.md"
+    required: true
+    description: "闭环 3 验收任务——临床 CSV 数据分析 + 图表生成 + 报告输出"
+
+  - path: "build-package/fixtures/tasks/tool_comparison_task.md"
+    required: true
+    description: "闭环 10 验收任务——Blender vs Manim 医学动画工具对比"
+
+  - path: "build-package/fixtures/data/sample_clinical.csv"
+    required: true
+    description: "20 行模拟临床数据——含缺失值（P012 缺 glucose/hba1c、P018 缺 triglycerides），测试缺失值处理"
+
+  # ── 自动化脚本 ──
+  - path: "build-package/scripts/setup.ps1"
+    required: true
+    description: "Windows 环境一键配置脚本——6 步：管理员检查→创建目录→winget 安装→验证→Python venv→.env 配置"
+
+  - path: "build-package/scripts/endpoint_policy.ps1"
+    required: true
+    description: "setup 共享的 fail-closed URL 解析与规范化策略——覆盖 scheme/host/port/尾点/Unicode 点/百分号混淆"
+
+  - path: "build-package/scripts/assemble_package.ps1"
+    required: false
+    description: "交付前完整性检查脚本——验证所有设计文件存在（仅检查，不修改任何文件）"
+
+  - path: "build-package/scripts/sandbox-net-filter.sh"
+    required: true
+    description: "omega-sandbox-net 网络过滤脚本——iptables 限制仅访问 PyPI/npm/GitHub/docs"
+
+  - path: "build-package/scripts/model_policy_runtime.py"
+    required: true
+    description: "可执行模型策略验证/安全发现/无损迁移/原子替换/回滚契约"
+
+  - path: "build-package/scripts/package_gate.py"
+    required: true
+    description: "严格解析 MANIFEST 全部 required 条目，并执行 parse/schema/reference/登记/对抗门禁"
+
+  - path: "build-package/tests/test_model_policy_runtime.py"
+    required: true
+    description: "URL 混淆、重定向、Schema、无损往返、失败不替换、回滚等对抗测试"
+
+  - path: "build-package/tests/test_package_gate.py"
+    required: true
+    description: "验证 MANIFEST required 缺失与未登记活动文件必然 fail-closed"
+
+  - path: "build-package/tests/test_endpoint_policy.ps1"
+    required: true
+    description: "PowerShell 端点策略对抗测试——验证原生 Anthropic 混淆 URL 被拒且批准端点规范化"
+
+  # ── 新增：路由与策略配置 ──
+  - path: "build-package/config/routing_table.yaml"
+    required: true
+    description: "冷启动路由表——16 种任务类型 × 多阶段 capability role/Agent 映射"
+
+  - path: "build-package/config/stage_weights.yaml"
+    required: true
+    description: "阶段权重表——8 个任务阶段 × 12 维度的动态权重覆盖"
+
+  - path: "build-package/config/risk_policy.yaml"
+    required: true
+    description: "四域风险升级策略——Auto/Notify/Confirm/Emergency 域规则 + 替换决策矩阵 + 回滚策略"
+
+  - path: "build-package/config/engine_resolution.yaml"
+    required: true
+    description: "能力角色解析策略——Codex/OpenAI 主链、兼容备用、2 秒动态发现、未知 ID 保留与原子迁移"
+
+  - path: "build-package/config/api_tiers.yaml"
+    required: true
+    description: "Provider 部署协议——禁止原生 Anthropic、NotebookLM 排除、本地仅显式灾备，生成 active_engines.yaml"
+
+  - path: "build-package/config/deployment_profiles.yaml"
+    required: true
+    description: "按 Codex 会话与 provider 可用性匹配的版本无关部署配置"
+
+  - path: "build-package/config/agent_role_mapping.yaml"
+    required: true
+    description: "🆕 Agent 角色映射表——解决方案论生产者 Agent（File Editor/Journal Matcher/Submission Navigator 等）与运行时 11 Agent 之间的不一致。三层映射：概念 Agent → 运行时 Agent → 未来 Agent。Codex 遇到方法论 Agent 时查此表分配运行时 Agent"
+
+  # ── 新增：Schema 补全 ──
+  - path: "build-package/schemas/outcome_package.schema.json"
+    required: true
+    description: "多模态成果包 JSON Schema——定义交付物结构/模态类型/验证信息/溯源链"
+
+  - path: "build-package/schemas/skill.schema.json"
+    required: true
+    description: "Skill 沉淀记录 JSON Schema——定义程序性记忆格式/执行步骤/验证/结晶溯源"
+
+  - path: "build-package/schemas/action_memory.schema.json"
+    required: true
+    description: "行动记忆 JSON Schema——定义每次任务执行的经验教训/指标/优化建议"
+
+  - path: "build-package/schemas/terminal_event.schema.json"
+    required: true
+    description: "🆕 Omega Terminal 统一事件协议 JSON Schema——13 种事件类型（task_progress/log/notification/confirm_request/file_result/risk_warning/approval_request/upload_result/task_lifecycle/system_health/dag_visualization/user_command/task_replay），确保'任何反馈都能进窗口'"
+
+  # ── 新增：验收任务 ──
+  - path: "build-package/fixtures/tasks/tool_learning_task.md"
+    required: true
+    description: "闭环 11 验收任务——双沙箱策略：omega-sandbox-net 安装 → omega-sandbox 离线验证"
+
+  # ── 新增：Docker 与 MCP 模板 ──
+  - path: "build-package/templates/docker-compose.yml"
+    required: true
+    description: "Docker Compose 编排模板——postgres + qdrant + omega-sandbox（无网络）+ omega-sandbox-net（有限网络）"
+
+  - path: "build-package/templates/Dockerfile.sandbox"
+    required: true
+    description: "Execution Sandbox Dockerfile——无网络/只读/非root/预装数据分析包"
+
+  - path: "build-package/templates/Dockerfile.sandbox-net"
+    required: true
+    description: "Toolsmith Sandbox Dockerfile——有限网络/可写/预装 pip+npm+curl"
+
+  - path: "build-package/templates/mcp-config.json"
+    required: true
+    description: "MCP Server 配置模板——8 个 MCP Server（filesystem/postgres/qdrant/playwright/github/brave-search/sequential-thinking/memory，2 个阶段 2 启用）"
+
+  - path: "build-package/templates/VISION_TRACE.yaml"
+    required: true
+    description: "🆕 方法论原则 → 代码模块追踪矩阵——防止'理念很美，代码漏掉'。将 Omega 功能优先总方法论中的每条核心原则逐条映射到具体代码模块、测试文件、CLI 命令和验收任务。初始状态全部为 planned，Codex 满足 code_module+test+CLI+oracle 四条件后标记 implemented"
+
+  - path: "build-package/templates/BENCHMARK_CATALOG.yaml"
+    required: true
+    description: "🆕 闭环目录（唯一权威源）——所有文档引用闭环时必须使用此文件中的稳定字符串 ID（如 literature_ingestion），而非数字。定义 MFE-Alpha=4 / MFE-Methodology=6 / MFE-Plus=9 / Full-Core=12 / Full-Extended=13+ 五层验收，含各文档编号体系的交叉映射表。Codex 构建验收时按 tier 字段决定哪些闭环必须通过"
+
+  # ── 新增：上下文管理模板 ──
+  - path: "build-package/templates/BUILD_STATE.md"
+    required: true
+    description: "构建状态模板——构建 Agent 每步更新当前进度/阻塞点/下一步/已修改文件，重启后由此恢复上下文"
+
+  - path: "build-package/templates/DECISIONS.md"
+    required: true
+    description: "关键决策日志模板——记录不可逆设计决策及理由，含构建前已知的 4 个关键决策（MFE 4 闭环/分层降级/双沙箱/功能最佳优先）"
+
+  - path: "build-package/templates/active_engines.yaml"
+    required: true
+    description: "活跃引擎注册表模板——Codex 部署时按 api_tiers.yaml 协议生成，记录每个引擎的 available/deferred/unavailable_confirmed 状态。Engine Resolver 运行时读取"
+
+  # ── 新增：MFE → Full 升级包（v3.0）──
+  - path: "build-package/UPGRADE_GUIDE.md"
+    required: true
+    description: "Omega 系统完整升级指南——MFE (v0.3.0) → 完全体 (v1.0.0) 的 11 阶段升级施工图。含每阶段详细实施步骤、代码骨架、验证方法、设计文档索引。Codex 必须按此文件执行升级"
+
+  - path: "build-package/CODEX_UPGRADE_PROMPT.md"
+    required: true
+    description: "Codex 升级启动提示词——可直接复制给 Codex 的优化升级提示词。包含执行规则、阶段概览、前置检查、凭据规则、构建边界、上下文恢复流程"
+
+  - path: "build-package/UPGRADE_CHECKLIST.md"
+    required: true
+    description: "升级逐阶段验收清单——11 个 Phase 每阶段逐项检查。全部通过才能进入下一阶段。含升级完成总验收（v1.0.0-full 基线）"
+
+  - path: "build-package/OMEGA_FINAL_FORM.md"
+    required: true
+    description: "Omega v1.0.0-full 最终形态描述——升级完成后你将实际拥有的系统。含核心能力矩阵、11 Agent 角色、13 基准闭环、Docker 拓扑、数据流示例、完整目录结构、与 MFE 差异对比"
+
+  - path: "build-package/OMEGA_TERMINAL.md"
+    required: true
+    description: "🆕 Omega Terminal 统一操作窗口设计规范（16 节）——类 VS Code 布局蓝图。含：9 层上传安全防护（大小/MIME/zip bomb/路径穿越/病毒扫描/内容检查）、任务回放功能（5 种模式）、命令面板一等功能（微信导入/GitHub雷达/ComfyUI/文档嵌入）、高风险动作强制 terminal_event 规则（12 类操作映射）、13 种统一事件协议。Phase 10 实现依据"
+
+# ── 文件总计 ──
+summary:
+  total_files: 85
+  required: 78
+  optional: 7
+  design_docs: 26
+  design_embedded_refs: 1
+  build_package_files: 58
+  physical_files: 84
+  other: 0
+  total_words_estimate: "~135,000 words"
+  key_changes_v3_2:
+    - "【Codex-first】新增 model_capabilities.yaml，集中定义稳定能力角色与 provider 顺序"
+    - "【无原生 Anthropic】禁止原生 Anthropic 账号/API/api.anthropic.com；Claude Messages 仅通过 OpenRouter/国产兼容端点备用"
+    - "【版本韧性】2 秒动态模型发现、未知 ID/设置/历史原样保留、验证后原子迁移并保留回滚文件"
+    - "【范围校正】NotebookLM 明确排除；Ollama/LM Studio 仅在用户显式授权后作为灾备"
+  key_changes_v3_1:
+    - "【Codex 第二轮生态评估优化】基于 Codex 对 Omega 生态系统的全面评估，修复 4 项不一致 + 实现 6 项'超越理想 Omega'的设计"
+    - "【BENCHMARK_CATALOG】新增闭环目录唯一权威源——稳定字符串 ID，三级验收（Alpha 4/Beta 6/Full 12），跨文档编号映射表"
+    - "【DEPLOYMENT_CONTRACT】新增部署契约——Codex 可自动/需确认/永不自动三类操作边界定义"
+    - "【VISION_TRACE】新增方法论原则→代码追踪矩阵；初始全部 planned，四条件满足后标记 implemented；CI 接入说明"
+    - "【Docker 统一】Dockerfile 模板统一为 python:3.11-slim-bookworm（与 UPGRADE_CHECKLIST 一致）"
+    - "【ECP】Phase 8 新增 Evolution Change Proposal 审批流程（变更摘要→风险评估→回滚方案→人类审批→审计归档）"
+    - "【Benchmark Oracle】Phase 11.7 新增基准预言机（6 维质量指标 vs 金标准→偏差报告→校准）"
+    - "【本地回退】AGENTS.md §1.8 新增 Local-First Fallback 协议（Ollama→LM Studio→llama.cpp→纯脚本 4 级降级）"
+    - "【溯源增强】Phase 11.3 溯源水印升级为声明级溯源（claim_id→source_id→evidence_type→confidence→model_call）"
+    - "【知识隔离】Phase 11.6 知识防污染升级为 4 层隔离（source_summary/claim_candidate/insight_candidate/formal_knowledge）"
+    - "【方法论目录缺口】AGENTS.md §8 标注 4 个空目录；功能优先总方法论 Parts 6-8 正文缺失处增加拆分说明"
+    - "【文档计数修正】MANIFEST/README 所有文件计数与实际条目数（69 文件）对齐"
+  key_changes_v3_0:
+    - "【Codex 反馈优化】基于 Codex 模拟测试反馈，新增 Phase 11（质量与安全加固——6 项安全特性）"
+    - "【Phase 11 新增】模拟构建器/任务飞行记录仪/溯源水印/预算控制台/工具隔离与签名/知识库防污染守卫"
+    - "【升级覆盖】Omega v0.3.0-mfe → v1.0.0-full（11 阶段，~49 新文件 + ~17 修改文件）"
+    - '【现实主义】OMEGA_FINAL_FORM.md 新增现实边界章节，标注 manim/blender 为"尽力而为"'
+    - "【安全协议】AGENTS.md 新增 4 项安全协议（知识防污染/工具隔离/模拟优先/溯源飞行记录）"
+    - "【升级包总字数】~28,000 words 新增升级文档（含 Phase 11 代码骨架）"
+  key_changes_v2_7:
+    - "【升级包新增】4 个升级文件：UPGRADE_GUIDE.md + CODEX_UPGRADE_PROMPT.md + UPGRADE_CHECKLIST.md + OMEGA_FINAL_FORM.md"
+    - "【升级覆盖】Omega v0.3.0-mfe → v1.0.0-full（10 阶段，37 新文件 + 16 修改文件）"
+    - "【升级包总字数】~20,000 words 新增升级文档"
+  key_changes_v2_6:
+    - "【部署策略校准】Codex 第四轮仿真反馈——部署策略校准 + 路径参数化 + 文档一致性修正（非大重写）"
+    - "【路径参数化】全部硬编码 D:\\Omega-System → OMEGA_HOME 变量（默认 D:\\Omega-System，可自定义）。涉及 setup.ps1、README、CODEX_RUN_PROMPT、AGENTS、USER_ACTIONS、mcp-config.json、tools.yaml"
+    - "【API 策略修正】功能最佳优先——先问国外顶级引擎（Claude→OpenAI→Perplexity→Brave），再确认国内平台（DeepSeek→通义/智谱/Kimi/硅基流动）。用户明确说拿不到才降级"
+    - "【新增】config/deployment_profiles.yaml — 4 种预置部署方案（full_power/balanced/domestic_enhanced/minimal）"
+    - "【新增】templates/active_engines.yaml — 活跃引擎注册表模板，记录 available/deferred/unavailable_confirmed"
+    - "【重写】api_tiers.yaml — 部署协议从 3 层扩展为国外顶级+国内平台两层询问，新增 deferred 状态"
+    - "【扩展】engine_resolution.yaml — quality_sensitive 链扩展为 Claude→GPT-4→DeepSeek→国内模型（6 级降级）"
+    - "【扩展】routing_table.yaml — 质量敏感任务新增 engine_strategy 字段，由 Engine Resolver 按完整链路解析而非硬编码 2 步"
+    - "【扩展】agents.yaml — 所有 Agent 新增 engine_strategy + preferred_engines 数组，allowed_tools 补全 GPT-4/国内引擎"
+    - "【修正】tools.yaml — claude_code 增加 credential_mode: endpoint_routed（支持自定义 endpoint），codex_cli 改为 credential_mode: user_session（GPT-5.5 Pro 不要求 OPENAI_API_KEY）"
+    - "【扩展】tool_card.schema.json — 新增 credential_mode / base_url_env_var / provider / availability_policy 字段"
+    - "【扩展】agent_card.schema.json — 新增 engine_strategy / preferred_engines 字段"
+    - "【重写】.env.example — [REQUIRED-TIER0/1/2] → [BEST-OPTIONAL]/[RECOMMENDED]/[OPTIONAL-DOMESTIC]，新增 SILICONFLOW_API_KEY"
+    - "【修正】CODEX_RUN_PROMPT.md — 删除 Codex CLI requires OPENAI_API_KEY 错误陈述，统一主线为 Codex+GPT-5.5 Pro"
+    - "【修正】README.md — 统一构建主线为 Codex+GPT-5.5 Pro，添加 OMEGA_HOME 自定义路径说明"
+    - "【更新】BUILD_CHECKLIST.md — 新增 OMEGA_HOME/active_engines/deferred 检查项"
+    - "【更新】USER_ACTIONS.md — API 填写改为选择式（Y=已有 / L=稍后 / N=暂无法获取）"
+    - "【更新】templates/BUILD_STATE.md — 新增 omega_home/api_availability/active_engines/deferred_api_decisions 字段"
+    - "【更新】templates/DECISIONS.md — 新增决策：不采用绝对国内-only，采用功能最佳优先的交互式分层降级"
+    - "设计原则：功能最佳优先。先追求最好的，可用就启用；用户明确说拿不到之后才降级。任何一层可用都能完整运行 Omega。"

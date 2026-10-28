@@ -1,0 +1,54 @@
+# Omega Toolsmith Sandbox Dockerfile
+# ====================================
+# 用途：在有限网络中安装和试用候选工具。
+# 特点：有限网络（仅 PyPI/npm/GitHub/docs）、可写、隔离。
+# 构建：docker build -t omega-sandbox-net -f Dockerfile.sandbox-net .
+
+FROM python:3.11-slim-bookworm
+
+LABEL org.omega.system="omega-sandbox-net"
+LABEL org.omega.purpose="toolsmith"
+LABEL org.omega.network="limited"
+
+# 安装网络过滤依赖 + nodejs（npm 工具可能需要）
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    iptables \
+    dnsutils \
+    git \
+    nodejs \
+    npm \
+    && rm -rf /var/lib/apt/lists/*
+
+# 创建非 root 用户
+RUN useradd --create-home --shell /bin/bash omega && \
+    mkdir -p /workspace /outputs /opt/tools && \
+    chown -R omega:omega /workspace /outputs /opt/tools
+
+# 预装基础工具
+RUN pip install --no-cache-dir \
+    pandas==2.2.3 \
+    numpy==2.1.3 \
+    matplotlib==3.9.3 \
+    pytest==8.3.4
+
+# 复制网络过滤脚本
+# ⚠️ 构建上下文要求：docker build 时当前目录必须包含 scripts/sandbox-net-filter.sh
+# 推荐布局：omega-runtime/ 下同时有 Dockerfile.sandbox-net 和 scripts/ 目录
+# 构建命令：cd omega-runtime && docker build -t omega-sandbox-net -f Dockerfile.sandbox-net .
+COPY --chown=root:root scripts/sandbox-net-filter.sh /usr/local/bin/sandbox-net-filter.sh
+RUN chmod +x /usr/local/bin/sandbox-net-filter.sh
+
+# 设置 iptables 规则限制网络访问（容器启动时执行）
+# 仅允许: PyPI, npm registry, GitHub, readthedocs, docs.python.org
+# 注意：iptables 需要 NET_ADMIN capability，在 docker-compose 中配置
+
+# ⚠️ 保持 root 用户——sandbox-net-filter.sh 需要 NET_ADMIN capability 设置 iptables
+# 安全依赖 Docker 层：no-new-privileges + iptables 白名单 + 仅映射 workspaces 卷
+WORKDIR /workspace
+
+HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
+    CMD python -c "print('sandbox-net OK')"
+
+# entrypoint 由 docker-compose.yml 覆盖（先执行网络过滤再 tail -f）
+CMD ["tail", "-f", "/dev/null"]

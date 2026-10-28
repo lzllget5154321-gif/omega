@@ -1,0 +1,542 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://omega-system.io/schemas/terminal_event.schema.json",
+  "title": "Omega Terminal Event Protocol",
+  "description": "统一事件协议——Omega Core 与 Omega Terminal 之间的所有双向通信事件定义。确保'任何反馈都能进窗口'。",
+  "type": "object",
+  "required": ["event_id", "event_type", "timestamp", "payload"],
+  "properties": {
+    "event_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "事件唯一标识符（UUID v4）"
+    },
+    "event_type": {
+      "type": "string",
+      "enum": [
+        "task_progress",
+        "log",
+        "notification",
+        "confirm_request",
+        "file_result",
+        "risk_warning",
+        "approval_request",
+        "upload_result",
+        "task_lifecycle",
+        "system_health",
+        "dag_visualization",
+        "user_command",
+        "task_replay"
+      ],
+      "description": "事件类型枚举（13 种）"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "事件发生时间（ISO 8601 UTC）"
+    },
+    "task_id": {
+      "type": "string",
+      "description": "关联的任务 ID（非任务级事件可为 null）"
+    },
+    "session_id": {
+      "type": "string",
+      "description": "终端会话 ID"
+    },
+    "payload": {
+      "type": "object",
+      "description": "事件载荷——结构由 event_type 决定",
+      "oneOf": [
+        { "$ref": "#/$defs/TaskProgress" },
+        { "$ref": "#/$defs/Log" },
+        { "$ref": "#/$defs/Notification" },
+        { "$ref": "#/$defs/ConfirmRequest" },
+        { "$ref": "#/$defs/FileResult" },
+        { "$ref": "#/$defs/RiskWarning" },
+        { "$ref": "#/$defs/ApprovalRequest" },
+        { "$ref": "#/$defs/UploadResult" },
+        { "$ref": "#/$defs/TaskLifecycle" },
+        { "$ref": "#/$defs/SystemHealth" },
+        { "$ref": "#/$defs/DAGVisualization" },
+        { "$ref": "#/$defs/UserCommand" },
+        { "$ref": "#/$defs/TaskReplay" }
+      ]
+    }
+  },
+
+  "$defs": {
+    "TaskProgress": {
+      "description": "任务进度更新——推送到 TaskMonitor 组件",
+      "type": "object",
+      "required": ["task_id", "percent", "current_step", "steps"],
+      "properties": {
+        "task_id": { "type": "string" },
+        "percent": { "type": "number", "minimum": 0, "maximum": 100 },
+        "current_step": { "type": "string", "description": "当前步骤描述" },
+        "steps": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["name", "status"],
+            "properties": {
+              "name": { "type": "string" },
+              "status": { "type": "string", "enum": ["pending", "running", "done", "failed", "skipped"] },
+              "duration_ms": { "type": "number" },
+              "output": { "type": "string" }
+            }
+          }
+        },
+        "estimated_remaining_seconds": { "type": "number" },
+        "agent": { "type": "string", "description": "当前执行 Agent 名称" },
+        "engine": { "type": "string", "description": "当前使用的 API 引擎" }
+      }
+    },
+
+    "Log": {
+      "description": "日志流条目——推送到 ChatArea 实时显示",
+      "type": "object",
+      "required": ["level", "message"],
+      "properties": {
+        "level": {
+          "type": "string",
+          "enum": ["debug", "info", "warning", "error", "critical"],
+          "description": "日志级别"
+        },
+        "message": { "type": "string", "description": "日志消息（支持 Markdown）" },
+        "source": { "type": "string", "description": "日志来源模块" },
+        "code_block": { "type": "string", "description": "关联的代码块（可选）" },
+        "streaming": { "type": "boolean", "description": "是否为流式输出（用于打字机效果）" }
+      }
+    },
+
+    "Notification": {
+      "description": "通知——推送到 NotificationCenter",
+      "type": "object",
+      "required": ["severity", "title", "message"],
+      "properties": {
+        "severity": {
+          "type": "string",
+          "enum": ["info", "success", "warning", "error"],
+          "description": "通知严重级别（决定图标和颜色）"
+        },
+        "title": { "type": "string", "description": "通知标题（简短）" },
+        "message": { "type": "string", "description": "通知正文（支持 Markdown）" },
+        "auto_dismiss_seconds": {
+          "type": "number",
+          "description": "自动消失秒数（0 = 需手动关闭）"
+        },
+        "action": {
+          "type": "object",
+          "description": "可选的操作按钮",
+          "properties": {
+            "label": { "type": "string" },
+            "command": { "type": "string", "description": "点击后执行的命令或打开的 URL" }
+          }
+        },
+        "category": {
+          "type": "string",
+          "enum": ["task_complete", "api_warning", "tool_discovery", "evolution", "system", "error"],
+          "description": "通知分类"
+        }
+      }
+    },
+
+    "ConfirmRequest": {
+      "description": "用户确认请求——需要用户点击确认/取消的交互式对话框",
+      "type": "object",
+      "required": ["request_id", "title", "message", "options"],
+      "properties": {
+        "request_id": { "type": "string", "description": "确认请求唯一 ID，用于回传用户选择" },
+        "title": { "type": "string", "description": "对话框标题" },
+        "message": { "type": "string", "description": "对话框正文（支持 Markdown）" },
+        "risk_level": {
+          "type": "string",
+          "enum": ["low", "medium", "high", "critical"],
+          "description": "操作风险等级（决定对话框颜色和警告强度）"
+        },
+        "options": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 4,
+          "items": {
+            "type": "object",
+            "required": ["id", "label"],
+            "properties": {
+              "id": { "type": "string", "description": "选项标识符（如 confirm/cancel/skip/adjust）" },
+              "label": { "type": "string", "description": "按钮文字" },
+              "style": {
+                "type": "string",
+                "enum": ["primary", "secondary", "danger", "ghost"],
+                "description": "按钮样式"
+              },
+              "description": { "type": "string", "description": "选项的补充说明" }
+            }
+          }
+        },
+        "timeout_seconds": {
+          "type": "number",
+          "description": "超时秒数（超时后自动选择默认选项）"
+        },
+        "context": {
+          "type": "object",
+          "description": "附加上下文数据（如 ECP 详情、受影响文件列表）"
+        }
+      }
+    },
+
+    "FileResult": {
+      "description": "文件产出结果——任务完成后展示生成的文件卡片",
+      "type": "object",
+      "required": ["files"],
+      "properties": {
+        "task_id": { "type": "string" },
+        "summary": { "type": "string", "description": "任务完成摘要" },
+        "files": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["path", "type", "size_bytes"],
+            "properties": {
+              "path": { "type": "string", "description": "相对于 vault 的文件路径" },
+              "type": {
+                "type": "string",
+                "enum": ["markdown", "image", "pdf", "csv", "pptx", "docx", "json", "yaml", "python", "other"],
+                "description": "文件类型"
+              },
+              "size_bytes": { "type": "number" },
+              "description": { "type": "string", "description": "文件简介" },
+              "preview_available": { "type": "boolean" },
+              "actions": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "label": { "type": "string" },
+                    "action": { "type": "string", "enum": ["open", "download", "preview", "copy_path"] }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "new_concepts": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "新创建的概念页 wikilink 列表"
+        },
+        "duration_seconds": { "type": "number" },
+        "cost_estimated_usd": { "type": "number" }
+      }
+    },
+
+    "RiskWarning": {
+      "description": "风险警告——高风险操作前的红色警告卡片",
+      "type": "object",
+      "required": ["risk_level", "operation", "impact", "rollback"],
+      "properties": {
+        "risk_level": {
+          "type": "string",
+          "enum": ["medium", "high", "critical"],
+          "description": "风险等级（low 不触发警告）"
+        },
+        "operation": { "type": "string", "description": "即将执行的操作描述" },
+        "impact": {
+          "type": "object",
+          "properties": {
+            "files_affected": { "type": "array", "items": { "type": "string" } },
+            "services_affected": { "type": "array", "items": { "type": "string" } },
+            "reversible": { "type": "boolean" },
+            "description": { "type": "string" }
+          }
+        },
+        "rollback": { "type": "string", "description": "回滚方案说明" },
+        "requires_confirmation": { "type": "boolean", "default": true }
+      }
+    },
+
+    "ApprovalRequest": {
+      "description": "审批请求——ECP 审批 / 工具注册审批 / 知识写入审批",
+      "type": "object",
+      "required": ["request_id", "approval_type", "title", "summary"],
+      "properties": {
+        "request_id": { "type": "string" },
+        "approval_type": {
+          "type": "string",
+          "enum": ["ecp", "tool_registration", "knowledge_write", "api_key_required", "system_change", "external_publish"],
+          "description": "审批类型"
+        },
+        "title": { "type": "string" },
+        "summary": { "type": "string", "description": "变更摘要" },
+        "details": {
+          "type": "object",
+          "description": "审批类型相关的详细数据",
+          "properties": {
+            "ecp": {
+              "type": "object",
+              "properties": {
+                "ecp_id": { "type": "string" },
+                "change_category": { "type": "string", "enum": ["tool_upgrade", "agent_update", "config_change", "new_integration", "deprecation"] },
+                "risk_assessment": { "type": "string" },
+                "test_results": { "type": "string" },
+                "rollback_plan": { "type": "string" }
+              }
+            },
+            "tool_registration": {
+              "type": "object",
+              "properties": {
+                "tool_name": { "type": "string" },
+                "version": { "type": "string" },
+                "source": { "type": "string" },
+                "sandbox_test_passed": { "type": "boolean" },
+                "isolation_signature": { "type": "string" }
+              }
+            },
+            "knowledge_write": {
+              "type": "object",
+              "properties": {
+                "target_page": { "type": "string" },
+                "quarantine_check_results": { "type": "object" },
+                "source_trace": { "type": "array", "items": { "type": "string" } }
+              }
+            }
+          }
+        },
+        "auto_approve_conditions": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "满足这些条件可自动批准（如 risk=LOW + sandbox_test=passed）"
+        }
+      }
+    },
+
+    "UploadResult": {
+      "description": "文件上传结果——上传完成后返回给终端",
+      "type": "object",
+      "required": ["file_id", "original_name", "status"],
+      "properties": {
+        "file_id": { "type": "string", "description": "服务端分配的文件 ID" },
+        "original_name": { "type": "string", "description": "原始文件名" },
+        "stored_path": { "type": "string", "description": "隔离区存储路径" },
+        "size_bytes": { "type": "number" },
+        "mime_type": { "type": "string" },
+        "detected_type": {
+          "type": "string",
+          "enum": ["pdf", "csv", "xlsx", "pptx", "docx", "md", "txt", "png", "jpg", "zip", "unknown"],
+          "description": "自动识别的文件类型"
+        },
+        "hash_sha256": { "type": "string", "description": "SHA-256 哈希" },
+        "status": {
+          "type": "string",
+          "enum": ["uploaded", "quarantined", "rejected", "scanning"],
+          "description": "上传状态"
+        },
+        "suggestions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "action": { "type": "string", "description": "建议操作（如 L3深度处理 / 数据分析 / ingest / 创建研究任务）" },
+              "command": { "type": "string", "description": "对应的 Omega 命令" },
+              "description": { "type": "string" }
+            }
+          },
+          "description": "基于文件类型的智能处理建议"
+        },
+        "security": {
+          "type": "object",
+          "properties": {
+            "passed": { "type": "boolean" },
+            "checks": { "type": "array", "items": { "type": "string" } },
+            "warnings": { "type": "array", "items": { "type": "string" } }
+          }
+        }
+      }
+    },
+
+    "TaskLifecycle": {
+      "description": "任务生命周期事件——任务创建/开始/暂停/恢复/取消/完成/失败",
+      "type": "object",
+      "required": ["task_id", "status"],
+      "properties": {
+        "task_id": { "type": "string" },
+        "status": {
+          "type": "string",
+          "enum": ["created", "queued", "running", "paused", "completed", "failed", "cancelled"],
+          "description": "任务状态"
+        },
+        "task_type": { "type": "string" },
+        "catalog_id": { "type": "string", "description": "BENCHMARK_CATALOG catalog_id（如适用）" },
+        "goal": { "type": "string", "description": "任务目标描述" },
+        "created_at": { "type": "string", "format": "date-time" },
+        "completed_at": { "type": "string", "format": "date-time" },
+        "error_message": { "type": "string", "description": "失败原因（status=failed 时）" }
+      }
+    },
+
+    "SystemHealth": {
+      "description": "系统健康状态——推送到 StatusBar",
+      "type": "object",
+      "required": ["omega_version", "services"],
+      "properties": {
+        "omega_version": { "type": "string" },
+        "services": {
+          "type": "object",
+          "properties": {
+            "postgres": { "type": "string", "enum": ["healthy", "degraded", "down"] },
+            "qdrant": { "type": "string", "enum": ["healthy", "degraded", "down"] },
+            "sandbox": { "type": "string", "enum": ["healthy", "degraded", "down"] },
+            "sandbox_net": { "type": "string", "enum": ["healthy", "degraded", "down"] }
+          }
+        },
+        "active_engines": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": { "type": "string" },
+              "status": { "type": "string", "enum": ["available", "deferred", "unavailable", "rate_limited"] }
+            }
+          }
+        },
+        "active_task_count": { "type": "number" },
+        "uptime_seconds": { "type": "number" }
+      }
+    },
+
+    "DAGVisualization": {
+      "description": "DAG 可视化数据——推送到 DAGViewer 组件（ReactFlow 渲染）",
+      "type": "object",
+      "required": ["task_id", "nodes", "edges"],
+      "properties": {
+        "task_id": { "type": "string" },
+        "nodes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["id", "label", "stage"],
+            "properties": {
+              "id": { "type": "string" },
+              "label": { "type": "string" },
+              "stage": { "type": "string", "description": "任务阶段" },
+              "tool": { "type": "string" },
+              "agent": { "type": "string" },
+              "status": { "type": "string", "enum": ["pending", "running", "done", "failed"] },
+              "estimated_duration_ms": { "type": "number" }
+            }
+          }
+        },
+        "edges": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["from", "to"],
+            "properties": {
+              "from": { "type": "string" },
+              "to": { "type": "string" },
+              "type": { "type": "string", "enum": ["sequential", "parallel", "conditional"] }
+            }
+          }
+        }
+      }
+    },
+
+    "UserCommand": {
+      "description": "用户从终端输入的命令——发送到 Omega Core 执行",
+      "type": "object",
+      "required": ["input"],
+      "properties": {
+        "input": { "type": "string", "description": "用户输入的自然语言或命令" },
+        "attached_files": {
+          "type": "array",
+          "items": { "type": "string", "description": "附件 file_id 列表" }
+        },
+        "mode": {
+          "type": "string",
+          "enum": ["natural_language", "command_palette", "cli"],
+          "description": "输入模式"
+        },
+        "context": {
+          "type": "object",
+          "description": "附加上下文（如当前打开的文件、选中的文本）"
+        }
+      }
+    },
+
+    "TaskReplay": {
+      "description": "任务回放事件——双向：Terminal→Core 发起回放请求；Core→Terminal 逐步推送回放帧",
+      "type": "object",
+      "required": ["task_id", "direction"],
+      "properties": {
+        "task_id": {
+          "type": "string",
+          "description": "要回放的任务 ID"
+        },
+        "direction": {
+          "type": "string",
+          "enum": ["request", "frame", "complete", "error"],
+          "description": "request=Terminal请求回放 / frame=Core推送回放帧 / complete=回放完成 / error=回放失败（如回放数据已过期）"
+        },
+        "mode": {
+          "type": "string",
+          "enum": ["step_by_step", "fast_forward", "diff", "performance", "learning"],
+          "description": "回放模式（仅 direction=request 时使用）"
+        },
+        "frame": {
+          "type": "object",
+          "description": "单帧回放数据（仅 direction=frame 时使用）",
+          "properties": {
+            "sequence": { "type": "number", "description": "帧序号（从 0 开始）" },
+            "timestamp": { "type": "string", "format": "date-time", "description": "原始执行时间" },
+            "node_id": { "type": "string", "description": "DAG 节点 ID" },
+            "stage": { "type": "string", "description": "任务阶段" },
+            "action": { "type": "string", "description": "执行的操作描述" },
+            "tool": { "type": "string", "description": "使用的工具" },
+            "agent": { "type": "string", "description": "执行的 Agent" },
+            "engine": { "type": "string", "description": "使用的 API 引擎" },
+            "input_summary": { "type": "string", "description": "输入摘要" },
+            "output_summary": { "type": "string", "description": "输出摘要" },
+            "duration_ms": { "type": "number", "description": "此步耗时（毫秒）" },
+            "status": { "type": "string", "enum": ["done", "failed", "skipped"], "description": "此步状态" },
+            "token_usage": {
+              "type": "object",
+              "properties": {
+                "prompt_tokens": { "type": "number" },
+                "completion_tokens": { "type": "number" },
+                "cost_estimated_usd": { "type": "number" }
+              }
+            },
+            "decision_rationale": {
+              "type": "string",
+              "description": "此步的决策理由（学习模式展示）"
+            }
+          }
+        },
+        "frames_total": {
+          "type": "number",
+          "description": "回放总帧数"
+        },
+        "summary": {
+          "type": "object",
+          "description": "回放完成摘要（仅 direction=complete 时使用）",
+          "properties": {
+            "total_duration_ms": { "type": "number" },
+            "total_cost_usd": { "type": "number" },
+            "total_tokens": { "type": "number" },
+            "nodes_total": { "type": "number" },
+            "nodes_succeeded": { "type": "number" },
+            "nodes_failed": { "type": "number" },
+            "final_artifacts": {
+              "type": "array",
+              "items": { "type": "string" },
+              "description": "最终产物文件路径列表"
+            }
+          }
+        },
+        "error": {
+          "type": "string",
+          "description": "回放失败原因（仅 direction=error 时使用，如回放数据已过期/被清理）"
+        }
+      }
+    }
+  }
+}

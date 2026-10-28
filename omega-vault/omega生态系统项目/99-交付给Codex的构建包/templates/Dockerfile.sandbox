@@ -1,0 +1,38 @@
+# Omega Execution Sandbox Dockerfile
+# ===================================
+# 用途：离线安全执行 Python/Bash 代码。
+# 特点：network_mode: none、read_only root、no-new-privileges。
+# 构建：docker build -t omega-sandbox -f Dockerfile.sandbox .
+
+FROM python:3.11-slim-bookworm
+
+LABEL org.omega.system="omega-sandbox"
+LABEL org.omega.purpose="execution"
+LABEL org.omega.network="none"
+
+# 安全：创建非 root 用户
+RUN useradd --create-home --shell /bin/bash omega && \
+    mkdir -p /workspace /outputs && \
+    chown omega:omega /workspace /outputs
+
+# 预装数据分析核心包（离线可用）
+RUN pip install --no-cache-dir \
+    pandas==2.2.3 \
+    numpy==2.1.3 \
+    scipy==1.14.1 \
+    matplotlib==3.9.3 \
+    seaborn==0.13.2 \
+    scikit-learn==1.5.2 \
+    statsmodels==0.14.4 \
+    openpyxl==3.1.5
+
+# 切换到非 root 用户
+USER omega
+WORKDIR /workspace
+
+# 健康检查：确保 Python 可运行
+HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
+    CMD python -c "import pandas; import numpy; import matplotlib; print('sandbox OK')"
+
+# 默认保持运行
+CMD ["tail", "-f", "/dev/null"]

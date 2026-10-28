@@ -1,0 +1,289 @@
+# Omega BENCHMARK_CATALOG — 闭环目录（唯一权威源）
+# ===============================================================
+# 目的：所有文档引用基准闭环时必须使用此文件中的稳定字符串 ID，
+# 而非数字（数字在不同文档中含义不同，造成验收混乱）。
+#
+# 五层层级：
+#   MFE-Alpha       = 4 闭环（工程冷启动验证——构建包初始构建）
+#   MFE-Methodology = 6 闭环（方法论 §13.3 要求的 MFE 验收——严格等于方法论 6 闭环）
+#   MFE-Plus        = 9 闭环（+ code_generation / tool_comparison / quality_improvement）
+#   Full-Core       = 12 闭环（v1.0.0-full 验收）
+#   Full-Extended   = 13+ 闭环（v1.0.0-full-extended——含 knowledge_base_health 等扩展闭环）
+#
+# 使用规则：
+#   1. 所有文档引用闭环时，使用 `catalog_id`（如 `literature_ingestion`），不用数字
+#   2. Codex 构建验收时，按 `tier` 字段决定哪些闭环必须通过
+#   3. `09-功能基准任务花园/README.md` 的编号映射由此文件权威解析
+#   4. 方法论 MFE 6 闭环（§13.3）严格对应 MFE-Methodology 层的 6 个 catalog_id
+#
+# 格式：catalog_id 全小写、下划线分隔、语义明确
+
+version: "1.0"
+last_updated: "2026-05-17"
+
+# ═══════════════════════════════════════════
+# 四层验收定义
+# ═══════════════════════════════════════════
+acceptance_tiers:
+  mfe_alpha:
+    loop_count: 4
+    description: "工程冷启动验证——验证 Omega 核心能力（感知、分析、对比、学习）"
+    catalog_ids: [literature_ingestion, csv_analysis, tool_comparison, tool_gap_learning]
+
+  mfe_methodology:
+    loop_count: 6
+    description: "方法论 §13.3 要求的 MFE 验收——严格等于方法论 6 闭环"
+    catalog_ids: [literature_ingestion, pdf_deep_processing, csv_analysis, academic_writing, tool_gap_learning, browser_prefill]
+
+  mfe_plus:
+    loop_count: 9
+    description: "MFE 扩展验收——方法论 6 闭环 + code_generation / tool_comparison / quality_improvement"
+    catalog_ids: [literature_ingestion, pdf_deep_processing, csv_analysis, academic_writing, tool_gap_learning, browser_prefill, code_generation, tool_comparison, quality_improvement]
+
+  full:
+    loop_count: 12
+    description: "v1.0.0-full 验收——全部 Full-Core 基准闭环"
+    catalog_ids: [literature_ingestion, pdf_deep_processing, csv_analysis, code_generation, academic_writing, browser_prefill, scientific_visualization, ppt_generation, service_health, tool_comparison, tool_gap_learning, evolution_auto_upgrade]
+
+  full_extended:
+    loop_count: 13
+    description: "v1.0.0-full-extended 验收——Full-Core 12 + 扩展闭环（knowledge_base_health 等）"
+    catalog_ids: [literature_ingestion, pdf_deep_processing, csv_analysis, code_generation, academic_writing, browser_prefill, scientific_visualization, ppt_generation, service_health, tool_comparison, tool_gap_learning, evolution_auto_upgrade, knowledge_base_health]
+
+# ═══════════════════════════════════════════
+# 闭环定义（按 catalog_id 字母序排列）
+# ═══════════════════════════════════════════
+loops:
+  - catalog_id: literature_ingestion
+    display_name: "文献检索与知识摄取"
+    description: "给定搜索主题 → PubMed/Semantic Scholar 检索 → 提取 → 评级 → 创建 wiki/来源/ 页面"
+    legacy_numbers:
+      methodology_6: 1        # 方法论 §MFE 验收中的 6 闭环编号
+      benchmark_garden: 1     # 09-功能基准任务花园/README.md 的 1-12 编号
+      final_form_12: 1        # OMEGA_FINAL_FORM.md 的 1-12 编号
+      upgrade_guide: "闭环 1"
+    tier: mfe_alpha
+    fixture: "fixtures/tasks/literature_ingestion_task.md"
+    oracle_gold_standard: "fixtures/gold_standard/closed_loop_1.json"
+    verifies: [perception, knowledge_ingestion, source_creation]
+
+  - catalog_id: pdf_deep_processing
+    display_name: "PDF 文献深度处理"
+    description: "处理 PubMed PDF → Zotero 条目 → L3 深度笔记 → 概念链接"
+    legacy_numbers:
+      methodology_6: 2        # 方法论 §MFE 验收中的 6 闭环编号
+      benchmark_garden: 2
+      final_form_12: null     # OMEGA_FINAL_FORM 闭环 2 实为知识库健康检查，非 PDF 深度处理
+      upgrade_guide: "闭环 2"
+    tier: mfe_methodology
+    fixture: null
+    oracle_gold_standard: null
+    verifies: [pdf_extraction, zotero_integration, deep_reading]
+
+  - catalog_id: csv_analysis
+    display_name: "CSV 数据分析与统计报告"
+    description: "读取 CSV → 探索性分析 → 统计检验 → 可视化 → 报告"
+    legacy_numbers:
+      methodology_6: 3
+      benchmark_garden: 3
+      final_form_12: 3
+      upgrade_guide: "闭环 3"
+    tier: mfe_alpha
+    fixture: "fixtures/tasks/data_analysis_task.md"
+    oracle_gold_standard: "fixtures/gold_standard/closed_loop_3.json"
+    verifies: [data_analysis, statistics, visualization, reporting]
+
+  - catalog_id: code_generation
+    display_name: "代码生成与执行"
+    description: "需求 → Python 脚本 → 沙箱测试 → 输出"
+    legacy_numbers:
+      methodology_6: null
+      benchmark_garden: null    # 09-README 未列出为独立闭环
+      final_form_12: 4
+      upgrade_guide: "闭环 4"
+    tier: mfe_plus
+    fixture: null
+    oracle_gold_standard: null
+    verifies: [code_generation, sandbox_execution, testing]
+
+  - catalog_id: academic_writing
+    display_name: "学术写作与审校"
+    description: "基于文献 → 写综述草稿 → Critic 审查 → 修改"
+    legacy_numbers:
+      methodology_6: 4
+      benchmark_garden: 5        # 09-README 编号为 5
+      final_form_12: null        # OMEGA_FINAL_FORM 未列出
+      upgrade_guide: "闭环 5"
+    tier: mfe_methodology
+    fixture: null
+    oracle_gold_standard: null
+    verifies: [academic_writing, critic_review, citation_accuracy]
+
+  - catalog_id: browser_prefill
+    display_name: "浏览器自动化与表单预填"
+    description: "打开指定网页 → 识别表单字段 → 预填 → 截图 → 等待确认"
+    legacy_numbers:
+      methodology_6: 6
+      benchmark_garden: 6
+      final_form_12: 9
+      upgrade_guide: "闭环 9"
+    tier: mfe_methodology
+    fixture: null
+    oracle_gold_standard: null
+    verifies: [browser_automation, form_recognition, screenshot]
+
+  - catalog_id: scientific_visualization
+    display_name: "科学可视化"
+    description: "matplotlib/plotly/manim → 图表/动画（manim/blender 尽力而为）"
+    legacy_numbers:
+      benchmark_garden: 7
+      final_form_12: 8
+      upgrade_guide: "闭环 8"
+    tier: full
+    fixture: null
+    oracle_gold_standard: null
+    verifies: [scientific_visualization, matplotlib, plotly]
+
+  - catalog_id: ppt_generation
+    display_name: "PPT 生成"
+    description: "文献/数据 → 模板匹配 → 图表嵌入 → .pptx 输出"
+    legacy_numbers:
+      methodology_6: null
+      benchmark_garden: null
+      final_form_12: 5
+      upgrade_guide: "闭环 5"
+    tier: full
+    fixture: null
+    oracle_gold_standard: "fixtures/gold_standard/closed_loop_5.json"
+    verifies: [ppt_generation, template_matching, chart_embedding]
+
+  - catalog_id: service_health
+    display_name: "服务健康自检"
+    description: "Docker/PostgreSQL/Qdrant/MCP 健康扫描"
+    legacy_numbers:
+      benchmark_garden: null
+      final_form_12: 7
+      upgrade_guide: "闭环 7"
+    tier: full
+    fixture: null
+    oracle_gold_standard: null
+    verifies: [service_health, docker_status, database_connectivity]
+
+  - catalog_id: tool_comparison
+    display_name: "工具对比分析"
+    description: "多工具 × 多维度 → 对比 wiki + 升级推荐"
+    legacy_numbers:
+      methodology_6: null
+      benchmark_garden: null
+      final_form_12: 10
+      upgrade_guide: "闭环 10"
+    tier: mfe_alpha
+    fixture: "fixtures/tasks/tool_comparison_task.md"
+    oracle_gold_standard: null
+    verifies: [tool_comparison, multi_dimension_scoring, recommendation]
+
+  - catalog_id: tool_gap_learning
+    display_name: "工具自主学习"
+    description: "检测能力缺口 → PyPI/GitHub 搜索 → 双沙箱安装+验证 → 注册"
+    legacy_numbers:
+      methodology_6: 5        # 方法论 §MFE 验收中的 6 闭环编号
+      benchmark_garden: 4        # 09-README 将此标为闭环 4
+      final_form_12: 11
+      upgrade_guide: "闭环 11"
+    tier: mfe_alpha
+    fixture: "fixtures/tasks/tool_learning_task.md"
+    oracle_gold_standard: null
+    verifies: [tool_discovery, sandbox_isolation, tool_registration]
+
+  - catalog_id: quality_improvement
+    display_name: "质量改进闭环"
+    description: "检测弱项 → 搜索更好工具 → 重新生成 → 对比报告"
+    legacy_numbers:
+      methodology_6: null
+      benchmark_garden: null
+      final_form_12: 6
+      upgrade_guide: "闭环 6"
+    tier: mfe_plus
+    fixture: null
+    oracle_gold_standard: null
+    verifies: [quality_improvement, tool_upgrade, regeneration]
+
+  - catalog_id: evolution_auto_upgrade
+    display_name: "演化自动升级"
+    description: "检测过时工具 → 沙箱测试新版 → 质量对比 → ECP 审批 → 升级"
+    legacy_numbers:
+      benchmark_garden: null
+      final_form_12: 12
+      upgrade_guide: "闭环 12"
+    tier: full
+    fixture: null
+    oracle_gold_standard: null
+    verifies: [evolution, auto_upgrade, ecp_workflow]
+
+  - catalog_id: knowledge_base_health
+    display_name: "知识库健康检查"
+    description: "死链检测 → 孤儿页面扫描 → 索引同步验证 → 冲突检测 → 修复建议"
+    legacy_numbers:
+      methodology_6: null
+      benchmark_garden: null
+      final_form_12: 2        # OMEGA_FINAL_FORM 闭环 2 原定义即为知识库健康检查
+      upgrade_guide: null
+    tier: full_extended
+    fixture: null
+    oracle_gold_standard: null
+    verifies: [knowledge_health, dead_link_detection, orphan_scan, index_sync, conflict_detection]
+
+# ═══════════════════════════════════════════
+# 文档之间的编号映射表（供 Codex 交叉引用）
+# ═══════════════════════════════════════════
+cross_reference:
+  methodology_6_closed_loops:
+    description: "功能优先总方法论 §MFE 中定义的 6 个 MFE 闭环（对应 MFE-Methodology）"
+    mapping:
+      1: literature_ingestion
+      2: pdf_deep_processing
+      3: csv_analysis
+      4: academic_writing
+      5: tool_gap_learning
+      6: browser_prefill
+  benchmark_garden_12:
+    description: "09-功能基准任务花园/README.md 中定义的 1-12 闭环"
+    mapping:
+      1: literature_ingestion
+      2: pdf_deep_processing
+      3: csv_analysis
+      4: tool_gap_learning       # 注意：编号 4 映射到 tool_gap_learning，非 code_generation
+      5: academic_writing
+      6: browser_prefill
+      7: scientific_visualization
+      # 8-12: 由 09-README 继续定义（非学术基准任务）
+  final_form_12:
+    description: "OMEGA_FINAL_FORM.md 中定义的 1-12 闭环（含 Full-Extended 第 13 个闭环 knowledge_base_health）"
+    mapping:
+      1: literature_ingestion
+      2: knowledge_base_health  # 修正：OMEGA_FINAL_FORM 闭环 2 是知识库健康检查，非 pdf_deep_processing
+      3: csv_analysis
+      4: code_generation
+      5: ppt_generation
+      6: quality_improvement
+      7: service_health
+      8: scientific_visualization
+      9: browser_prefill
+      10: tool_comparison
+      11: tool_gap_learning
+      12: evolution_auto_upgrade
+
+# ═══════════════════════════════════════════
+# 使用说明（给 Codex + 文档维护者）
+# ═══════════════════════════════════════════
+usage_notes: |
+  1. 本文件是闭环命名的唯一权威源。所有文档引用闭环时必须使用 catalog_id，不用数字。
+  2. 当在不同文档中看到不同数字的"闭环 N"时，在此文件中查询 legacy_numbers 字段找到对应 catalog_id。
+  3. Codex 构建验收时：
+     - MFE-Alpha（迭代 0-3）：验证 catalog_ids 中 tier=mfe_alpha 的 4 个闭环
+     - MFE-Methodology（MFE 扩展后）：验证 tier=mfe_methodology 的 6 个闭环（严格等于方法论 §13.3）
+     - MFE-Plus（进一步扩展）：验证 tier=mfe_alpha + mfe_methodology + mfe_plus 的 9 个闭环
+     - Full-Core（v1.0.0-full）：验证 tier=full 的 12 个闭环
+     - Full-Extended（v1.0.0-full-extended）：验证全部 13 个闭环（含 knowledge_base_health）
+  4. 新增闭环时：在此文件末尾添加新条目，分配唯一 catalog_id，填写所有 legacy_numbers 映射
+  5. 不要修改已有闭环的 catalog_id——这是稳定标识符

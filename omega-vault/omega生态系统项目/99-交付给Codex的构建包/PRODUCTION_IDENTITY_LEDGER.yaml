@@ -1,0 +1,56 @@
+schema_version: "1.0.0"
+updated_at: "2026-08-23T08:08:44+08:00"
+status: CLEAR
+scope: "Codex-first Obsidian/Claudian production bundle and Omega runtime"
+
+policy:
+  primary_provider: codex
+  openai_api_role: secondary_runtime
+  compatible_claude_messages_role: fallback_only
+  native_anthropic_allowed: false
+  notebooklm_in_scope: false
+  local_model_mode: explicit_disaster_recovery_only
+  secret_values_recorded: false
+
+source_identity:
+  component: obsidian_realclaudian
+  identity_kind: file_sha256_not_git_commit
+  main_path: "D:/obsidian/lzl的个人知识库/.obsidian/plugins/realclaudian/main.js"
+  main_sha256: e9c887b4431bf21ac6845003d4be17ff343261d87fc072b656935b9e824435f6
+  main_size_bytes: 4506960
+  manifest_sha256: 4f02d058800a856f181beedb3fd824e1d5c44b1ee07c6d8a6bd3ba7bb8be52fb
+  styles_sha256: 8670f56f7614460ede0d8310faafd230c3a11916b3d5c9f4c43d7f85a687e0b5
+  receipt_id: wp10-e9c887-deep-current-cold-t28
+
+production_runtime:
+  component: omega_system
+  root: "D:/Omega-System"
+  repository_commit_status: no_commits_yet
+  image: "omega-control-plane:r142-codex-prod-v2"
+  image_id: "sha256:f33780d0e19b6a9e1e09f63888ee3e9001dc0cd6806fdbfb8b7d22cdee840ecc"
+  receipt_id: omega-r142-production-codex-e2e-v2
+
+receipts:
+  effective:
+    - id: wp10-e9c887-deep-current-cold-t28
+      path: "D:/CodexData/WP10Runs/wp10-e9c887-deep-current-cold-t28.json"
+      sha256: d739de03c9e2d2508322f894dec79e53f28fc3f165feaa18289378252e106731
+      status: PASS
+      authority: obsidian_claudian_bundle_identity
+    - id: omega-r142-production-codex-e2e-v2
+      path: "D:/CodexData/WP10Runs/omega-r142-production-codex-e2e-v2.json"
+      sha256: d26943e7d4abe916de62783d46744c9cf9e67a1432de428e232d895a5e6480f5
+      status: PASS
+      authority: omega_runtime_production
+  superseded:
+    - id: omega-r142-production-codex-e2e
+      path: "D:/CodexData/WP10Runs/omega-r142-production-codex-e2e.json"
+      sha256: 956b130d11051b7551a289959f3e8062606718b9a76f9a48d27ef522cd49df6f
+      status: SUPERSEDED
+      superseded_by: omega-r142-production-codex-e2e-v2
+
+verification_contract:
+  external_paths_are_sync_time_evidence: true
+  portable_package_gate_checks_structure_and_internal_references: true
+  fresh_production_claims_require_rehash_and_new_receipt: true
+  historical_receipts_are_immutable: true

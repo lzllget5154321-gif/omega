@@ -1,0 +1,108 @@
+# Omega model capability roles — Codex-first source of truth
+schema_version: "3.0"
+policy:
+  primary_build_surface: codex_cli
+  primary_runtime_provider: openai
+  native_anthropic_api: forbidden
+  forbidden_base_urls: ["https://api.anthropic.com", "https://api.anthropic.com/"]
+  notebooklm: excluded
+  local_models: explicit_disaster_recovery_only
+  model_selection: capability_role
+  preserve_unknown_ids: true
+  preserve_unknown_settings: true
+  preserve_route_history: true
+
+capability_roles:
+  engineering_primary:
+    required_capabilities: [code_generation, code_review, tool_orchestration]
+    provider_chain: [codex_session, openai_api, openrouter_claude_messages, domestic_claude_messages, domestic_openai_compatible, local_disaster_recovery]
+  quality_reasoning:
+    required_capabilities: [complex_reasoning, long_context, structured_output]
+    provider_chain: [codex_session, openai_api, openrouter_claude_messages, domestic_claude_messages, domestic_openai_compatible, local_disaster_recovery]
+  academic_writing:
+    required_capabilities: [academic_writing, citation_aware_synthesis, long_context]
+    provider_chain: [codex_session, openai_api, openrouter_claude_messages, domestic_claude_messages, domestic_openai_compatible, local_disaster_recovery]
+  economical_general:
+    required_capabilities: [text_generation, structured_output]
+    provider_chain: [codex_session, openai_api, domestic_openai_compatible, openrouter_claude_messages, domestic_claude_messages, local_disaster_recovery]
+  realtime_search:
+    required_capabilities: [web_search, source_citation]
+    provider_chain: [perplexity_api, brave_search_mcp, playwright_mcp]
+
+providers:
+  codex_session:
+    transport: codex_cli_session
+    credential_mode: user_session
+    discovery: current_runtime
+    model: null
+    enabled_by_default: true
+  openai_api:
+    transport: openai_responses
+    credential_mode: env
+    api_key_env_var: OPENAI_API_KEY
+    base_url_env_var: OPENAI_BASE_URL
+    discovery:
+      method: models_endpoint
+      path: /v1/models
+      timeout_seconds: 2
+    model_env_var: OMEGA_OPENAI_MODEL
+    model: null
+    enabled_by_default: true
+  openrouter_claude_messages:
+    transport: claude_messages
+    credential_mode: env
+    api_key_env_var: OPENROUTER_API_KEY
+    base_url_env_var: OPENROUTER_BASE_URL
+    default_base_url: "https://openrouter.ai/api/v1"
+    discovery:
+      method: models_endpoint
+      path: /models
+      timeout_seconds: 2
+    model_env_var: OMEGA_OPENROUTER_MODEL
+    model: null
+    enabled_by_default: false
+  domestic_claude_messages:
+    transport: claude_messages
+    credential_mode: env
+    api_key_env_var: DOMESTIC_CLAUDE_API_KEY
+    base_url_env_var: DOMESTIC_CLAUDE_BASE_URL
+    discovery:
+      method: optional_models_endpoint
+      path: /models
+      timeout_seconds: 2
+    model_env_var: OMEGA_DOMESTIC_CLAUDE_MODEL
+    model: null
+    enabled_by_default: false
+    guard: "base URL must not resolve to api.anthropic.com"
+  domestic_openai_compatible:
+    transport: openai_compatible
+    credential_mode: env
+    candidates: [deepseek_api, qwen_api, zhipu_api, moonshot_api, siliconflow_api]
+    discovery:
+      method: models_endpoint
+      path: /models
+      timeout_seconds: 2
+    model: null
+    enabled_by_default: false
+  local_disaster_recovery:
+    transport: openai_compatible_local
+    credential_mode: none
+    candidates: [ollama, lm_studio, script_only]
+    model: null
+    enabled_by_default: false
+    activation: explicit_user_action_only
+
+migration:
+  atomic_write: true
+  validate_before_replace: true
+  keep_previous_file: true
+  provider_aliases:
+    gpt4_api: openai_api
+    claude_api: openrouter_claude_messages
+    claude_code: codex_session
+  tool_aliases:
+    claude_code: codex_cli
+  alias_rules:
+    - "Provider aliases and tool aliases are separate namespaces."
+    - "Aliases accept historical configuration but never select native Anthropic transport."
+    - "Unknown provider and model IDs round-trip unchanged and remain disabled until validated."

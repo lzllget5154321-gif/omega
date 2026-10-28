@@ -1,0 +1,81 @@
+# Omega provider deployment protocol — Codex-first
+schema_version: "3.0"
+source_of_truth: model_capabilities.yaml
+
+hard_constraints:
+  native_anthropic_api: forbidden
+  forbidden_base_urls: ["https://api.anthropic.com", "https://api.anthropic.com/"]
+  notebooklm: excluded
+  local_models: explicit_disaster_recovery_only
+
+tiers:
+  build_surface:
+    - tier: 0
+      engine: codex_session
+      label: "Codex CLI current session"
+      credential_mode: user_session
+      required: true
+      model_selection: runtime_discovery
+  language_engine:
+    - tier: 0
+      engine: openai_api
+      label: "OpenAI primary"
+      env_var: OPENAI_API_KEY
+      base_url_env_var: OPENAI_BASE_URL
+      model_env_var: OMEGA_OPENAI_MODEL
+      required: false
+      model_selection: discover_then_override
+    - tier: 1
+      engine: openrouter_claude_messages
+      label: "OpenRouter Claude Messages fallback"
+      env_var: OPENROUTER_API_KEY
+      base_url_env_var: OPENROUTER_BASE_URL
+      model_env_var: OMEGA_OPENROUTER_MODEL
+      required: false
+      transport: claude_messages
+    - tier: 1
+      engine: domestic_claude_messages
+      label: "Domestic Claude Messages fallback"
+      env_var: DOMESTIC_CLAUDE_API_KEY
+      base_url_env_var: DOMESTIC_CLAUDE_BASE_URL
+      model_env_var: OMEGA_DOMESTIC_CLAUDE_MODEL
+      required: false
+      transport: claude_messages
+      guard: "must not resolve to api.anthropic.com"
+    - tier: 2
+      label: "Domestic OpenAI-compatible fallbacks"
+      engines:
+        - {engine: deepseek_api, env_var: DEEPSEEK_API_KEY, base_url_env_var: DEEPSEEK_BASE_URL, model_env_var: OMEGA_DEEPSEEK_MODEL}
+        - {engine: qwen_api, env_var: QWEN_API_KEY, base_url_env_var: QWEN_BASE_URL, model_env_var: OMEGA_QWEN_MODEL}
+        - {engine: zhipu_api, env_var: ZHIPU_API_KEY, base_url_env_var: ZHIPU_BASE_URL, model_env_var: OMEGA_ZHIPU_MODEL}
+        - {engine: moonshot_api, env_var: MOONSHOT_API_KEY, base_url_env_var: MOONSHOT_BASE_URL, model_env_var: OMEGA_MOONSHOT_MODEL}
+        - {engine: siliconflow_api, env_var: SILICONFLOW_API_KEY, base_url_env_var: SILICONFLOW_BASE_URL, model_env_var: OMEGA_SILICONFLOW_MODEL}
+      required: false
+      model_selection: discover_then_override
+    - tier: disaster_recovery
+      engine: local_disaster_recovery
+      providers: [ollama, lm_studio, script_only]
+      required: false
+      enabled_by_default: false
+      activation: explicit_user_action_only
+  auxiliary:
+    - {service: "PubMed Entrez", env_var: NCBI_API_KEY, required: false}
+    - {service: "GitHub", env_var: GITHUB_TOKEN, required: false}
+    - {service: "Zotero", env_var: ZOTERO_API_KEY, required: false}
+
+deployment_protocol:
+  order: [codex_session, openai_api, openrouter_claude_messages, domestic_claude_messages, domestic_openai_compatible, auxiliary]
+  output: omega-runtime/config/active_engines.yaml
+  statuses: [available, deferred, unavailable_confirmed, disabled]
+  rules:
+    - "Do not request an Anthropic account or ANTHROPIC_API_KEY."
+    - "Never print secret values."
+    - "Probe model-list endpoints for at most 2 seconds; a discovery failure is not a reason to erase configured or unknown IDs."
+    - "Validate the candidate configuration before atomic replacement and retain the previous file for rollback."
+    - "Codex session is sufficient for building; runtime API integrations may remain deferred."
+
+degradation_rules:
+  engineering_primary: [codex_session, openai_api, openrouter_claude_messages, domestic_claude_messages, domestic_openai_compatible, local_disaster_recovery]
+  quality_sensitive: [codex_session, openai_api, openrouter_claude_messages, domestic_claude_messages, domestic_openai_compatible, local_disaster_recovery]
+  cost_sensitive: [codex_session, openai_api, domestic_openai_compatible, openrouter_claude_messages, domestic_claude_messages, local_disaster_recovery]
+  realtime_search: [perplexity_api, brave_search_mcp, playwright_mcp]

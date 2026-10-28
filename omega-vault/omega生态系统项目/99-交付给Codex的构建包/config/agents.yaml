@@ -1,0 +1,286 @@
+# Omega 种子 Agent 注册表
+# =======================
+# Codex 构建 Omega 时的初始 Agent 集。每条记录必须符合 schemas/agent_card.schema.json。
+# 这是 Productive Agent Society 的初始成员。阶段 2 会扩展到 12+ Agent。
+#
+# ⚠️ Agent 只声明 capability_role，不绑定具体模型版本。
+# 兼容字段 preferred_engine / preferred_engines 仍保留，但值使用角色或 provider 类别；
+# 旧配置中的未知 provider/model ID 必须原样保留，由 Engine Resolver 动态发现和验证。
+
+agents:
+  # ── 成本敏感 Agent ──
+  - id: researcher
+    role: "研究员"
+    description: "负责文献检索、信息提取和初步分析"
+    allowed_tools: [pubmed_api, semantic_scholar_api, zotero, codex_cli, openai_api, openrouter_claude_messages, domestic_claude_messages, deepseek_api, qwen_api, zhipu_api, python_sandbox]
+    forbidden_tools: [playwright_mcp]
+    input_schema:
+      type: object
+      properties:
+        query: {type: string, description: "检索问题"}
+        max_results: {type: integer, default: 20}
+    output_schema:
+      type: object
+      properties:
+        citations: {type: array}
+        key_findings: {type: array}
+    handoff_targets: [writer, data_analyst, medical_evidence_agent]
+    review_required: false
+    autonomy_level: L1
+    preferred_engine: economical_general
+    capability_role: economical_general
+    engine_strategy: cost_sensitive
+    preferred_engines: [codex_session, openai_api, domestic_openai_compatible, openrouter_claude_messages, domestic_claude_messages]
+    stage_affinity: [perception, extraction]
+
+  # ── 质量敏感 Agent ──
+  - id: writer
+    role: "学术写作师"
+    description: "负责结构化写作、文献综合和引用管理"
+    allowed_tools: [codex_cli, openai_api, openrouter_claude_messages, domestic_claude_messages, deepseek_api, qwen_api, zhipu_api, moonshot_api, zotero, pandoc, obsidian_vault]
+    forbidden_tools: [playwright_mcp, python_sandbox]
+    input_schema:
+      type: object
+      properties:
+        outline: {type: array}
+        sources: {type: array}
+        style: {type: string, default: "academic"}
+    output_schema:
+      type: object
+      properties:
+        manuscript: {type: string}
+        citations: {type: array}
+    handoff_targets: [researcher, critic]
+    review_required: true
+    autonomy_level: L1
+    preferred_engine: academic_writing
+    capability_role: academic_writing
+    engine_strategy: quality_sensitive
+    preferred_engines: [codex_session, openai_api, openrouter_claude_messages, domestic_claude_messages, domestic_openai_compatible]
+    stage_affinity: [synthesis, delivery]
+
+  # ── 质量敏感 Agent ──
+  - id: critic
+    role: "审查者"
+    description: "审查输出质量、科学准确性和逻辑一致性"
+    allowed_tools: [codex_cli, openai_api, openrouter_claude_messages, domestic_claude_messages, deepseek_api, qwen_api, zhipu_api, obsidian_vault]
+    forbidden_tools: []
+    input_schema:
+      type: object
+      properties:
+        content: {type: string, description: "待审查的内容"}
+        criteria: {type: array, description: "审查标准列表"}
+    output_schema:
+      type: object
+      properties:
+        passed: {type: boolean}
+        issues: {type: array}
+        suggestions: {type: array}
+    handoff_targets: [writer, researcher, data_analyst]
+    review_required: false
+    autonomy_level: L2
+    preferred_engine: quality_reasoning
+    capability_role: quality_reasoning
+    engine_strategy: quality_sensitive
+    preferred_engines: [codex_session, openai_api, openrouter_claude_messages, domestic_claude_messages, domestic_openai_compatible]
+    stage_affinity: [review]
+
+  # ── 工具 Agent（非语言引擎）──
+  - id: data_analyst
+    role: "数据分析师"
+    description: "负责统计分析和图表生成"
+    allowed_tools: [python_sandbox, python_data_science, codex_cli, openai_api, deepseek_api, qwen_api, zhipu_api]
+    forbidden_tools: [playwright_mcp, zotero]
+    input_schema:
+      type: object
+      properties:
+        data_path: {type: string}
+        analysis_type: {type: string}
+    output_schema:
+      type: object
+      properties:
+        results: {type: object}
+        charts: {type: array}
+        report: {type: string}
+    handoff_targets: [writer, critic, researcher]
+    review_required: false
+    autonomy_level: L1
+    preferred_engine: engineering_primary
+    capability_role: engineering_primary
+    stage_affinity: [analysis, transformation]
+
+  # ── 工具 Agent（非语言引擎）──
+  - id: coder
+    role: "代码工程师"
+    description: "负责代码生成、测试和修复"
+    allowed_tools: [codex_cli, openai_api, python_sandbox, github_mcp, openrouter_claude_messages, domestic_claude_messages]
+    forbidden_tools: [playwright_mcp]
+    input_schema:
+      type: object
+      properties:
+        task: {type: string}
+        language: {type: string, default: "python"}
+    output_schema:
+      type: object
+      properties:
+        code: {type: string}
+        test_results: {type: object}
+    handoff_targets: [critic]
+    review_required: true
+    autonomy_level: L1
+    preferred_engine: engineering_primary
+    capability_role: engineering_primary
+    engine_strategy: engineering_primary
+    preferred_engines: [codex_session, openai_api, openrouter_claude_messages, domestic_claude_messages, domestic_openai_compatible]
+    stage_affinity: [execution]
+
+  # ── 工具 Agent（混合：安装用 DeepSeek，评估用 Claude）──
+  - id: toolsmith
+    role: "工具学习师"
+    description: "负责发现、试用和注册新工具"
+    allowed_tools: [codex_cli, openai_api, python_sandbox, github_mcp, openrouter_claude_messages, domestic_claude_messages, deepseek_api]
+    forbidden_tools: []
+    input_schema:
+      type: object
+      properties:
+        tool_name: {type: string}
+        task_description: {type: string}
+    output_schema:
+      type: object
+      properties:
+        tool_card: {type: object}
+        adapter_code: {type: string}
+        evaluation: {type: string}
+    handoff_targets: [critic, coder]
+    review_required: true
+    autonomy_level: L2
+    preferred_engine: engineering_primary
+    capability_role: engineering_primary
+    engine_strategy: engineering_primary
+    preferred_engines: [codex_session, openai_api, openrouter_claude_messages, domestic_claude_messages, domestic_openai_compatible]
+    stage_affinity: [perception, transformation]
+
+  # ── 成本敏感 Agent ──
+  - id: knowledge_steward
+    role: "知识管理员"
+    description: "负责知识库维护、索引一致性和死链修复"
+    allowed_tools: [obsidian_vault, codex_cli, openai_api, openrouter_claude_messages, domestic_claude_messages, deepseek_api, qwen_api, zhipu_api, filesystem_mcp, postgresql]
+    forbidden_tools: [playwright_mcp, python_sandbox]
+    input_schema:
+      type: object
+      properties:
+        action: {type: string, enum: [lint, index, migrate, archive]}
+    output_schema:
+      type: object
+      properties:
+        report: {type: string}
+        changes: {type: array}
+    handoff_targets: []
+    review_required: false
+    autonomy_level: L0
+    preferred_engine: economical_general
+    capability_role: economical_general
+    engine_strategy: cost_sensitive
+    preferred_engines: [codex_session, openai_api, domestic_openai_compatible, openrouter_claude_messages, domestic_claude_messages]
+    stage_affinity: [delivery]
+
+  # ── 工具 Agent（非语言引擎）──
+  - id: browser_operator
+    role: "浏览器操作员"
+    description: "负责网页自动化操作——导航、截图、表单预填"
+    allowed_tools: [playwright_mcp, codex_cli, openai_api, deepseek_api, qwen_api, zhipu_api]
+    forbidden_tools: []
+    input_schema:
+      type: object
+      properties:
+        url: {type: string}
+        actions: {type: array}
+    output_schema:
+      type: object
+      properties:
+        screenshots: {type: array}
+        extracted_data: {type: object}
+    handoff_targets: [critic]
+    review_required: true
+    autonomy_level: L2
+    preferred_engine: economical_general
+    capability_role: economical_general
+    stage_affinity: [execution, delivery]
+
+  # ── 质量敏感 Agent ──
+  - id: medical_evidence_agent
+    role: "医学证据评估师"
+    description: "负责医学文献的质量评估和证据等级判定"
+    allowed_tools: [codex_cli, openai_api, openrouter_claude_messages, domestic_claude_messages, deepseek_api, qwen_api, zhipu_api, pubmed_api, zotero, obsidian_vault]
+    forbidden_tools: [playwright_mcp]
+    input_schema:
+      type: object
+      properties:
+        study_design: {type: string}
+        outcome_data: {type: object}
+    output_schema:
+      type: object
+      properties:
+        evidence_level: {type: string}
+        grade_assessment: {type: object}
+        risk_of_bias: {type: string}
+    handoff_targets: [writer, researcher, critic]
+    review_required: true
+    autonomy_level: L2
+    preferred_engine: quality_reasoning
+    capability_role: quality_reasoning
+    engine_strategy: quality_sensitive
+    preferred_engines: [codex_session, openai_api, openrouter_claude_messages, domestic_claude_messages, domestic_openai_compatible]
+    stage_affinity: [analysis, review]
+
+  # ── 质量敏感 Agent ──
+  - id: planner
+    role: "任务规划师"
+    description: "负责复杂任务的分解、依赖分析和 DAG 生成"
+    allowed_tools: [codex_cli, openai_api, openrouter_claude_messages, domestic_claude_messages, deepseek_api, qwen_api, obsidian_vault]
+    forbidden_tools: []
+    input_schema:
+      type: object
+      properties:
+        task_contract: {type: object}
+        available_tools: {type: array}
+    output_schema:
+      type: object
+      properties:
+        steps: {type: array}
+        dag: {type: object}
+        estimated_time: {type: string}
+    handoff_targets: [router]
+    review_required: false
+    autonomy_level: L0
+    preferred_engine: quality_reasoning
+    capability_role: quality_reasoning
+    engine_strategy: quality_sensitive
+    preferred_engines: [codex_session, openai_api, openrouter_claude_messages, domestic_claude_messages, domestic_openai_compatible]
+    stage_affinity: [perception]
+
+  # ── 成本敏感 Agent ──
+  - id: router
+    role: "工具路由决策师"
+    description: "负责为每个任务步骤选择最优工具和 Agent"
+    allowed_tools: [codex_cli, openai_api, openrouter_claude_messages, domestic_claude_messages, deepseek_api, qwen_api, zhipu_api, obsidian_vault]
+    forbidden_tools: []
+    input_schema:
+      type: object
+      properties:
+        step: {type: object}
+        candidates: {type: array}
+    output_schema:
+      type: object
+      properties:
+        selected_tool: {type: string}
+        fallback_tool: {type: string}
+        score_breakdown: {type: object}
+    handoff_targets: []
+    review_required: false
+    autonomy_level: L0
+    preferred_engine: economical_general
+    capability_role: economical_general
+    engine_strategy: cost_sensitive
+    preferred_engines: [codex_session, openai_api, domestic_openai_compatible, openrouter_claude_messages, domestic_claude_messages]
+    stage_affinity: [perception]

@@ -1,0 +1,141 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://omega-system/schemas/tool_card.schema.json",
+  "title": "Tool Card",
+  "description": "Omega 工具注册表中的单条工具记录。Tool-Agent Router 据此评分。",
+  "type": "object",
+  "required": ["id", "name", "category", "capabilities", "status"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]*$",
+      "description": "工具唯一标识符（snake_case）"
+    },
+    "name": {
+      "type": "string",
+      "description": "工具显示名称"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "language_engine", "code_execution", "literature_search",
+        "data_analysis", "file_processing", "browser_automation",
+        "image_generation", "animation_3d", "animation_2d",
+        "video_processing", "tts", "knowledge_management",
+        "vector_search", "citation_management", "sandbox",
+        "mcp_server", "system_utility"
+      ]
+    },
+    "capabilities": {
+      "type": "array",
+      "items": {"type": "string"},
+      "description": "工具提供的能力标签列表，与 Capability Fabric 对齐"
+    },
+    "input_types": {
+      "type": "array",
+      "items": {"type": "string"},
+      "description": "接受的输入类型（text, pdf, csv, url, image, etc.）"
+    },
+    "output_types": {
+      "type": "array",
+      "items": {"type": "string"},
+      "description": "可产生的输出类型"
+    },
+    "install_command": {
+      "type": "string",
+      "description": "在新环境中安装此工具的命令"
+    },
+    "healthcheck_command": {
+      "type": "string",
+      "description": "验证工具已正确安装并可用的命令"
+    },
+    "risk_level": {
+      "type": "string",
+      "enum": ["low", "medium", "high", "critical"],
+      "description": "使用此工具的风险等级"
+    },
+    "requires_api_key": {
+      "type": "boolean",
+      "default": false,
+      "description": "是否需要 API Key（如需，请在运行时提示用户提供）"
+    },
+    "api_key_env_var": {
+      "type": "string",
+      "description": "对应的环境变量名。禁止原生 Anthropic 凭据；不存在时按 provider 策略标记 deferred"
+    },
+    "api_key_obtain_url": {
+      "type": "string",
+      "description": "用户获取 API Key 的 URL。Codex 提示用户时附带此链接"
+    },
+    "credential_mode": {
+      "type": "string",
+      "enum": ["env_var", "endpoint_routed", "user_session", "none"],
+      "default": "env_var",
+      "description": "凭据模式：env_var=环境变量；endpoint_routed=兼容端点；user_session=Codex 当前会话；none=无需凭据"
+    },
+    "base_url_env_var": {
+      "type": "string",
+      "description": "自定义 API endpoint 的环境变量名（如 DEEPSEEK_BASE_URL）。仅 credential_mode=endpoint_routed 时有效"
+    },
+    "provider": {
+      "type": "string",
+      "description": "工具/模型的提供商（如 anthropic, openai, deepseek, perplexity, google, alibaba, zhipu, moonshot, siliconflow）"
+    },
+    "availability_policy": {
+      "type": "string",
+      "enum": ["best_optional", "fallback_optional", "recommended", "required", "domestic_optional", "deferred"],
+      "default": "best_optional",
+      "description": "API 可用性策略：best_optional=优先获取但不强制（如 Claude/OpenAI）；recommended=推荐配置（如 DeepSeek）；required=必须可用；domestic_optional=国内平台可选；deferred=阶段 2 再评估"
+    },
+    "cost_model": {
+      "type": "string",
+      "enum": ["free", "freemium", "paid_per_use", "paid_subscription", "open_source", "free_tier"],
+      "description": "成本模型——free_tier 表示免费但有额度限制（如 Brave Search API 免费层）"
+    },
+    "context_window": {
+      "type": ["integer", "null"],
+      "description": "上下文窗口大小（tokens），仅 AI 模型适用"
+    },
+    "status": {
+      "type": "string",
+      "enum": ["discovered", "investigating", "sandbox_tested", "benchmarked", "candidate", "integrated", "preferred", "fallback", "deprecated", "retired", "system_builtin", "manual_fallback", "unavailable_foreign", "unavailable_deprecated"],
+      "description": "工具在 Omega 生命周期中的状态。system_builtin=系统内置, manual_fallback=需用户手动操作, unavailable_foreign=国外AI厂商Key不可用, unavailable_deprecated=已废弃且无替代"
+    },
+    "fallbacks": {
+      "type": "array",
+      "items": {"type": "string"},
+      "description": "此工具不可用时的备选工具 ID 列表"
+    },
+    "limitations": {
+      "type": "array",
+      "items": {"type": "string"},
+      "description": "已知限制和注意事项"
+    },
+    "docs_url": {
+      "type": ["string", "null"],
+      "description": "官方文档 URL"
+    },
+    "transport": {
+      "type": "string",
+      "description": "协议类别，如 openai_responses、openai_compatible 或 claude_messages"
+    },
+    "sota_source_level": {
+      "type": "string",
+      "enum": ["S0", "S1", "S2", "S3"],
+      "description": "SOTA Source Hierarchy 中的来源等级"
+    },
+    "benchmark_scores": {
+      "type": "object",
+      "description": "在 Tool Benchmark Cards 中的评分",
+      "properties": {
+        "task_fit": {"type": "number", "minimum": 0, "maximum": 1},
+        "success_rate": {"type": "number", "minimum": 0, "maximum": 1},
+        "output_quality": {"type": "number", "minimum": 0, "maximum": 1},
+        "cost": {"type": "number", "minimum": 0, "maximum": 1},
+        "speed": {"type": "number", "minimum": 0, "maximum": 1},
+        "controllability": {"type": "number", "minimum": 0, "maximum": 1},
+        "batch_reproducibility": {"type": "number", "minimum": 0, "maximum": 1}
+      }
+    }
+  }
+}

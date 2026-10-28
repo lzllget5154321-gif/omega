@@ -1,0 +1,103 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://omega-system/schemas/task_contract.schema.json",
+  "title": "Task Contract",
+  "description": "Omega Task Gateway 输出的结构化任务契约。用户自然语言命令 → Task Gateway → 此格式。",
+  "type": "object",
+  "required": ["task_id", "user_goal", "task_type", "complexity", "autonomy_level"],
+  "properties": {
+    "task_id": {
+      "type": "string",
+      "pattern": "^omega-task-\\d{4}-\\d{4}-\\d{3}$",
+      "description": "任务唯一标识，格式 omega-task-YYYY-MMDD-NNN"
+    },
+    "user_goal": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 2000,
+      "description": "用户的自然语言目标"
+    },
+    "task_type": {
+      "type": "string",
+      "enum": [
+        "knowledge_ingestion",
+        "literature_search",
+        "literature_review",
+        "data_analysis",
+        "meta_analysis",
+        "academic_writing",
+        "code_generation",
+        "file_processing",
+        "browser_automation",
+        "tool_learning",
+        "tool_comparison",
+        "knowledge_query",
+        "realtime_search",
+        "task_planning",
+        "medical_research",
+        "system_maintenance"
+      ],
+      "description": "任务大类，由 Task Gateway 自动分类。共 16 种，与 routing_table.yaml 保持一致。"
+    },
+    "complexity": {
+      "type": "string",
+      "enum": ["linear", "branching", "workflow"],
+      "description": "linear=单步单一工具 / branching=多步2-3工具 / workflow=多Agent协作"
+    },
+    "autonomy_level": {
+      "type": "string",
+      "enum": ["L0", "L1", "L2"],
+      "description": "L0=全自动 / L1=自动+通知 / L2=关键步骤需确认"
+    },
+    "quality_profile": {
+      "type": "string",
+      "enum": ["speed_first", "balanced", "highest_quality", "scientific_only"],
+      "default": "balanced"
+    },
+    "expected_outcome": {
+      "type": "object",
+      "properties": {
+        "primary_deliverables": {
+          "type": "array",
+          "items": {"type": "string"},
+          "description": "必须产出的文件路径列表"
+        },
+        "secondary_deliverables": {
+          "type": "array",
+          "items": {"type": "string"},
+          "description": "可选产出"
+        }
+      }
+    },
+    "constraints": {
+      "type": "object",
+      "properties": {
+        "max_time_minutes": {"type": "integer", "minimum": 1},
+        "max_cost_usd": {"type": "number", "minimum": 0},
+        "language": {"type": "string", "default": "zh-CN"},
+        "allowed_tools": {"type": "array", "items": {"type": "string"}},
+        "forbidden_tools": {"type": "array", "items": {"type": "string"}}
+      }
+    },
+    "inputs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "type": {"type": "string", "enum": ["file", "url", "text", "query"]},
+          "value": {"type": "string"},
+          "label": {"type": "string"}
+        }
+      }
+    },
+    "context": {
+      "type": "object",
+      "description": "当前 Obsidian 上下文（当前笔记、选中文本等）",
+      "properties": {
+        "current_note": {"type": "string"},
+        "selected_text": {"type": "string"},
+        "vault_path": {"type": "string"}
+      }
+    }
+  }
+}

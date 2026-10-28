@@ -1,0 +1,166 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://omega-system/schemas/skill.schema.json",
+  "title": "Skill Record",
+  "description": "Omega Skill 沉淀记录 schema——定义从最佳实践中结晶的程序性记忆格式。对应设计文档 Best-Practice Harvester 和 Skill 库。",
+  "type": "object",
+  "required": ["skill_id", "name", "version", "status", "created_at"],
+  "properties": {
+    "skill_id": {
+      "type": "string",
+      "pattern": "^skill-[a-z0-9-]+$",
+      "description": "Skill 唯一 ID，如 skill-pubmed-batch-search"
+    },
+    "name": {
+      "type": "string",
+      "description": "Skill 人类可读名称"
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "description": "语义化版本号"
+    },
+    "status": {
+      "type": "string",
+      "enum": ["candidate", "verified", "active", "deprecated", "retired"],
+      "description": "Skill 生命周期状态"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "literature_search",
+        "data_analysis",
+        "code_generation",
+        "academic_writing",
+        "visualization",
+        "browser_automation",
+        "file_processing",
+        "knowledge_management",
+        "tool_learning",
+        "safety_check",
+        "review",
+        "meta_skill"
+      ],
+      "description": "Skill 所属类别"
+    },
+    "description": {
+      "type": "string",
+      "description": "Skill 的简要描述（一句话）"
+    },
+    "triggers": {
+      "type": "array",
+      "description": "触发此 Skill 的条件",
+      "items": {
+        "type": "object",
+        "properties": {
+          "condition": {
+            "type": "string",
+            "enum": ["task_type_match", "keyword_match", "tool_available", "always"]
+          },
+          "value": { "type": "string" }
+        }
+      }
+    },
+    "preconditions": {
+      "type": "array",
+      "description": "Skill 执行前必须满足的条件",
+      "items": {
+        "type": "object",
+        "properties": {
+          "type": { "type": "string", "enum": ["tool_available", "env_var_set", "file_exists", "api_key_set", "docker_running"] },
+          "value": { "type": "string" },
+          "error_message": { "type": "string" }
+        }
+      }
+    },
+    "steps": {
+      "type": "array",
+      "minItems": 1,
+      "description": "Skill 执行步骤",
+      "items": {
+        "type": "object",
+        "required": ["order", "action", "tool"],
+        "properties": {
+          "order": { "type": "integer" },
+          "action": {
+            "type": "string",
+            "enum": ["search", "read", "write", "execute", "transform", "verify", "notify", "wait", "handoff"]
+          },
+          "tool": { "type": "string", "description": "执行此步骤的工具 ID" },
+          "params": { "type": "object", "description": "步骤参数模板" },
+          "expected_output": { "type": "string" },
+          "on_failure": {
+            "type": "object",
+            "properties": {
+              "retry_count": { "type": "integer" },
+              "fallback_step": { "type": "integer" },
+              "fallback_tool": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+    "validation": {
+      "type": "object",
+      "description": "Skill 验证信息",
+      "properties": {
+        "last_validated_at": { "type": "string", "format": "date-time" },
+        "success_rate": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "最近 20 次执行的成功率"
+        },
+        "benchmark_scores": {
+          "type": "object",
+          "description": "在基准任务上的得分",
+          "additionalProperties": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          }
+        },
+        "verification_method": {
+          "type": "string",
+          "enum": ["auto_test", "human_review", "benchmark", "cross_validation"]
+        }
+      }
+    },
+    "crystallization": {
+      "type": "object",
+      "description": "Skill 结晶信息——从最佳实践到 Skill 的完整溯源",
+      "properties": {
+        "source_best_practice_id": { "type": "string" },
+        "crystallized_by_agent": { "type": "string" },
+        "num_successful_uses_before_crystallization": { "type": "integer" },
+        "related_benchmark_tasks": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "agent_scopes": {
+      "type": "array",
+      "description": "可以使用此 Skill 的 Agent ID 列表",
+      "items": { "type": "string" }
+    },
+    "dependencies": {
+      "type": "array",
+      "description": "依赖的其他 Skill ID",
+      "items": { "type": "string" }
+    },
+    "deprecates": {
+      "type": "array",
+      "description": "此 Skill 替代的旧 Skill ID",
+      "items": { "type": "string" }
+    }
+  }
+}

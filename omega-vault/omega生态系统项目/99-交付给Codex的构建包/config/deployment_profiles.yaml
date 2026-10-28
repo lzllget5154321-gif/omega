@@ -1,0 +1,43 @@
+# Omega deployment profiles — capability roles, not model releases
+schema_version: "3.0"
+source_of_truth: model_capabilities.yaml
+
+profiles:
+  - id: codex_plus_openai
+    label: "Codex + OpenAI"
+    conditions: [codex_session_available, OPENAI_API_KEY_nonempty]
+    chains:
+      engineering_primary: [codex_session, openai_api, openrouter_claude_messages, domestic_claude_messages, domestic_openai_compatible]
+      quality_sensitive: [codex_session, openai_api, openrouter_claude_messages, domestic_claude_messages, domestic_openai_compatible]
+      economical_general: [codex_session, openai_api, domestic_openai_compatible, openrouter_claude_messages, domestic_claude_messages]
+  - id: codex_with_compatible_fallbacks
+    label: "Codex + compatible fallbacks"
+    conditions: [codex_session_available, any_compatible_provider_available]
+    chains:
+      engineering_primary: [codex_session, openai_api, openrouter_claude_messages, domestic_claude_messages, domestic_openai_compatible]
+      quality_sensitive: [codex_session, openai_api, openrouter_claude_messages, domestic_claude_messages, domestic_openai_compatible]
+      economical_general: [codex_session, openai_api, domestic_openai_compatible, openrouter_claude_messages, domestic_claude_messages]
+  - id: codex_session_only
+    label: "Codex session only"
+    conditions: [codex_session_available]
+    chains:
+      engineering_primary: [codex_session]
+      quality_sensitive: [codex_session]
+      economical_general: [codex_session]
+    notes: "Build and host-delegated tasks remain available; standalone runtime API tasks report deferred."
+  - id: explicit_local_disaster_recovery
+    label: "Explicit local disaster recovery"
+    conditions: [OMEGA_LOCAL_DR_ENABLED_true, explicit_user_authorization]
+    chains:
+      engineering_primary: [local_disaster_recovery]
+      quality_sensitive: [local_disaster_recovery]
+      economical_general: [local_disaster_recovery]
+    notes: "Never selected automatically. Quality degradation must be disclosed."
+
+selection_rules:
+  preserve_unknown_ids: true
+  discover_models_at_runtime: true
+  discovery_timeout_seconds: 2
+  validate_before_atomic_replace: true
+  forbidden_base_urls: ["https://api.anthropic.com", "https://api.anthropic.com/"]
+  excluded_integrations: [notebooklm]

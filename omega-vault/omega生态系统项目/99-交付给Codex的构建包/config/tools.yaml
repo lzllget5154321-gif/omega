@@ -1,0 +1,570 @@
+# Omega 种子工具注册表
+# ===================
+# Codex 构建 Omega 时的初始工具集。每条记录必须符合 schemas/tool_card.schema.json。
+# 标记为 preferred 的是 MFE 阶段的默认选择。
+#
+# 关于凭据：凡 requires_api_key: true 的工具，Codex 必须在首次使用前检查
+# 对应的 api_key_env_var 是否存在。如不存在，必须提示用户提供，并告知
+# api_key_obtain_url。禁止将 API Key 写入代码文件。
+
+tools:
+  # ═══════════════════════════════════════════
+  # 语言与推理引擎
+  # ═══════════════════════════════════════════
+  - id: openrouter_claude_messages
+    name: "OpenRouter Claude Messages fallback"
+    category: language_engine
+    capabilities: [TextGeneration, ComplexReasoning, CodeReview, AcademicWriting, MultiLanguage, LongContext]
+    input_types: [text, markdown, code]
+    output_types: [text, markdown, code, analysis]
+    requires_api_key: true
+    api_key_env_var: OPENROUTER_API_KEY
+    api_key_obtain_url: "https://openrouter.ai/keys"
+    base_url_env_var: OPENROUTER_BASE_URL
+    provider: openrouter
+    transport: claude_messages
+    cost_model: paid_per_use
+    context_window: null
+    status: fallback
+    risk_level: low
+    fallbacks: [domestic_claude_messages, openai_api, deepseek_api]
+    limitations: ["知识截止于训练日期", "需要工具才能执行代码", "无网络访问"]
+    docs_url: "https://openrouter.ai/docs"
+    sota_source_level: S0
+    notes: "仅备用。模型由运行时发现或 OMEGA_OPENROUTER_MODEL 覆盖；不使用原生 Anthropic 账号。"
+
+  - id: domestic_claude_messages
+    name: "Domestic Claude Messages fallback"
+    category: language_engine
+    capabilities: [TextGeneration, ComplexReasoning, CodeReview, AcademicWriting, MultiLanguage, LongContext]
+    input_types: [text, markdown, code]
+    output_types: [text, markdown, code, analysis]
+    requires_api_key: true
+    api_key_env_var: DOMESTIC_CLAUDE_API_KEY
+    base_url_env_var: DOMESTIC_CLAUDE_BASE_URL
+    provider: domestic_compatible
+    transport: claude_messages
+    cost_model: paid_per_use
+    context_window: null
+    status: fallback
+    risk_level: low
+    fallbacks: [openai_api, deepseek_api]
+    limitations: ["端点必须通过健康检查", "禁止 api.anthropic.com"]
+    docs_url: null
+    sota_source_level: S0
+    notes: "仅备用；模型由运行时发现或 OMEGA_DOMESTIC_CLAUDE_MODEL 覆盖。"
+
+  - id: deepseek_api
+    name: "DeepSeek API"
+    category: language_engine
+    capabilities: [TextGeneration, ComplexReasoning, CodeGeneration, CodeReview, MultiLanguage, LongContext]
+    input_types: [text, markdown, code]
+    output_types: [text, markdown, code, analysis]
+    requires_api_key: true
+    api_key_env_var: DEEPSEEK_API_KEY
+    api_key_obtain_url: "https://platform.deepseek.com/api_keys"
+    cost_model: paid_per_use
+    context_window: null
+    status: fallback
+    risk_level: low
+    fallbacks: [openai_api, openrouter_claude_messages, domestic_claude_messages]
+    limitations: ["知识截止于训练日期", "需要工具才能执行代码"]
+    docs_url: "https://platform.deepseek.com/docs"
+    sota_source_level: S0
+    notes: "国产 OpenAI-compatible 备用；具体模型运行时发现，不作为固定主模型。"
+
+  - id: openai_api
+    name: "OpenAI API"
+    category: language_engine
+    capabilities: [TextGeneration, ComplexReasoning, CodeGeneration, MultiLanguage]
+    input_types: [text, markdown, code]
+    output_types: [text, markdown, code]
+    requires_api_key: true
+    api_key_env_var: OPENAI_API_KEY
+    api_key_obtain_url: "https://platform.openai.com/api-keys"
+    cost_model: paid_per_use
+    base_url_env_var: OPENAI_BASE_URL
+    provider: openai
+    transport: openai_responses
+    context_window: null
+    status: preferred
+    risk_level: low
+    fallbacks: [openrouter_claude_messages, domestic_claude_messages, deepseek_api]
+    limitations: ["具体模型能力以运行时发现为准"]
+    docs_url: "https://platform.openai.com/docs"
+    sota_source_level: S0
+    notes: "Omega 运行时次主链。模型由 /v1/models 动态发现或 OMEGA_OPENAI_MODEL 覆盖。"
+
+  # ── 国内扩展引擎（阶段 2 预留——MFE 降级链中可用但非首选）──
+  - id: qwen_api
+    name: "通义千问 API (阿里云)"
+    category: language_engine
+    capabilities: [TextGeneration, MultiLanguage, CodeGeneration]
+    input_types: [text, markdown, code]
+    output_types: [text, markdown, code]
+    requires_api_key: true
+    api_key_env_var: QWEN_API_KEY
+    api_key_obtain_url: "https://dashscope.console.aliyun.com/"
+    provider: alibaba
+    availability_policy: domestic_optional
+    cost_model: paid_per_use
+    context_window: null
+    status: integrated
+    risk_level: low
+    fallbacks: [deepseek_api, zhipu_api]
+    limitations: ["能力取决于运行时发现的具体模型"]
+    docs_url: "https://help.aliyun.com/zh/model-studio/"
+    sota_source_level: S1
+    notes: "阶段 2 国内扩展引擎。Engine Resolver 降级链中排在 DeepSeek 之后。"
+
+  - id: zhipu_api
+    name: "智谱 GLM API"
+    category: language_engine
+    capabilities: [TextGeneration, MultiLanguage, CodeGeneration]
+    input_types: [text, markdown, code]
+    output_types: [text, markdown, code]
+    requires_api_key: true
+    api_key_env_var: ZHIPU_API_KEY
+    api_key_obtain_url: "https://open.bigmodel.cn/"
+    provider: zhipu
+    availability_policy: domestic_optional
+    cost_model: paid_per_use
+    context_window: null
+    status: integrated
+    risk_level: low
+    fallbacks: [deepseek_api, qwen_api]
+    limitations: ["能力取决于运行时发现的具体模型"]
+    docs_url: "https://open.bigmodel.cn/dev/api"
+    sota_source_level: S1
+    notes: "阶段 2 国内扩展引擎。"
+
+  - id: moonshot_api
+    name: "月之暗面 Kimi API"
+    category: language_engine
+    capabilities: [TextGeneration, LongContext, MultiLanguage]
+    input_types: [text, markdown]
+    output_types: [text, markdown]
+    requires_api_key: true
+    api_key_env_var: MOONSHOT_API_KEY
+    api_key_obtain_url: "https://platform.moonshot.cn/"
+    provider: moonshot
+    availability_policy: domestic_optional
+    cost_model: paid_per_use
+    context_window: null
+    status: integrated
+    risk_level: low
+    fallbacks: [deepseek_api, qwen_api]
+    limitations: ["代码能力弱于 DeepSeek", "超长上下文仅对部分任务有效"]
+    docs_url: "https://platform.moonshot.cn/docs"
+    sota_source_level: S1
+    notes: "阶段 2 国内扩展引擎——超长上下文。"
+
+  - id: siliconflow_api
+    name: "硅基流动 API"
+    category: language_engine
+    capabilities: [TextGeneration, MultiLanguage, CodeGeneration]
+    input_types: [text, markdown, code]
+    output_types: [text, markdown, code]
+    requires_api_key: true
+    api_key_env_var: SILICONFLOW_API_KEY
+    api_key_obtain_url: "https://siliconflow.cn/"
+    provider: siliconflow
+    availability_policy: domestic_optional
+    cost_model: paid_per_use
+    context_window: null
+    status: integrated
+    risk_level: low
+    fallbacks: [deepseek_api, qwen_api, zhipu_api]
+    limitations: ["多模型聚合平台，单一模型质量依赖具体后端"]
+    docs_url: "https://docs.siliconflow.cn/"
+    sota_source_level: S1
+    notes: "阶段 2 国内扩展引擎——多模型聚合平台。"
+
+  # ═══════════════════════════════════════════
+  # 代码执行
+  # ═══════════════════════════════════════════
+  - id: claude_code
+    name: "Claude Code (CLI)"
+    category: code_execution
+    capabilities: [PythonExecution, BashExecution, FileRead, FileWrite, FileEdit, GitOperation, ToolOrchestration]
+    input_types: [code, file, command]
+    output_types: [code, file, output]
+    install_command: "npm install -g @anthropic-ai/claude-code"
+    healthcheck_command: "claude --version"
+    requires_api_key: true
+    api_key_env_var: DOMESTIC_CLAUDE_API_KEY
+    credential_mode: endpoint_routed
+    base_url_env_var: ANTHROPIC_BASE_URL
+    provider: domestic_claude_messages
+    availability_policy: fallback_optional
+    cost_model: paid_per_use
+    status: fallback
+    risk_level: medium
+    fallbacks: [codex_cli, python_sandbox]
+    limitations: ["需要终端环境", "不适合超长持久化任务"]
+    docs_url: null
+    sota_source_level: S0
+    notes: "仅允许路由到 OpenRouter/国产 Claude Messages 兼容端点；必须拒绝 api.anthropic.com。"
+
+  - id: codex_cli
+    name: "OpenAI Codex CLI"
+    category: code_execution
+    capabilities: [PythonExecution, ShellExecution, FileRead, FileWrite, GitOperation]
+    input_types: [code, file, command]
+    output_types: [code, file, output]
+    install_command: "npm install -g @openai/codex"
+    healthcheck_command: "codex --version"
+    requires_api_key: false
+    credential_mode: user_session
+    provider: openai
+    availability_policy: best_optional
+    cost_model: paid_per_use
+    status: preferred
+    risk_level: medium
+    fallbacks: [openai_api, python_sandbox]
+    limitations: ["能力和模型从当前 Codex 运行时发现，不在配置中固定版本"]
+    docs_url: "https://github.com/openai/codex"
+    sota_source_level: S0
+    notes: "Codex 当前会话为构建与工程主链；凭据由宿主管理，不要求 OPENAI_API_KEY，也不固定具体模型版本。"
+
+  - id: python_sandbox
+    name: "Python Docker Sandbox"
+    category: sandbox
+    capabilities: [PythonExecution, DataAnalysis, ChartGeneration, FileProcessing, PackageInstall]
+    input_types: [python_script, csv, json, file]
+    output_types: [output, chart, file, dataframe]
+    install_command: "docker build -t omega-sandbox -f Dockerfile.sandbox ."
+    healthcheck_command: "docker run --rm omega-sandbox python -c 'print(\"OK\")'"
+    requires_api_key: false
+    cost_model: open_source
+    status: preferred
+    risk_level: low
+    fallbacks: []
+    limitations: ["网络禁用", "read_only root", "内存限制 4GB"]
+    docs_url: "https://docs.docker.com/"
+    sota_source_level: S1
+
+  # ═══════════════════════════════════════════
+  # 文献检索
+  # ═══════════════════════════════════════════
+  - id: pubmed_api
+    name: "PubMed Entrez API"
+    category: literature_search
+    capabilities: [AcademicSearch, MetadataRetrieval, AbstractExtraction]
+    input_types: [query]
+    output_types: [citation_list, abstract]
+    install_command: "pip install biopython"
+    healthcheck_command: "python -c 'from Bio import Entrez; print(\"OK\")'"
+    requires_api_key: true
+    api_key_env_var: NCBI_API_KEY
+    api_key_obtain_url: "https://www.ncbi.nlm.nih.gov/account/"
+    cost_model: free
+    status: preferred
+    risk_level: low
+    fallbacks: [semantic_scholar_api, openalex_api]
+    limitations: ["无 Key 时限速 3 req/s", "不返回全文 PDF"]
+    docs_url: "https://www.ncbi.nlm.nih.gov/books/NBK25501/"
+    sota_source_level: S0
+
+  - id: semantic_scholar_api
+    name: "Semantic Scholar API"
+    category: literature_search
+    capabilities: [AcademicSearch, CitationNetwork, MetadataRetrieval]
+    input_types: [query]
+    output_types: [citation_list, abstract, citation_graph]
+    install_command: "pip install semanticscholar"
+    healthcheck_command: "python -c 'import semanticscholar; print(\"OK\")'"
+    requires_api_key: false
+    cost_model: free
+    status: integrated
+    risk_level: low
+    fallbacks: [pubmed_api, openalex_api]
+    limitations: ["覆盖度不及 PubMed", "部分旧文献缺摘要"]
+    docs_url: "https://api.semanticscholar.org/"
+    sota_source_level: S1
+
+  # ═══════════════════════════════════════════
+  # 浏览器自动化
+  # ═══════════════════════════════════════════
+  - id: playwright_mcp
+    name: "Playwright MCP Server"
+    category: browser_automation
+    capabilities: [BrowserControl, FormFill, Screenshot, DOMRead, PageNavigation, FileUpload]
+    input_types: [url, command]
+    output_types: [screenshot, html, dom_tree]
+    install_command: "npx -y @playwright/mcp@latest"
+    healthcheck_command: "npx playwright --version"
+    requires_api_key: false
+    cost_model: open_source
+    status: preferred
+    risk_level: medium
+    fallbacks: []
+    limitations: ["不自动提交表单", "不绕过 CAPTCHA", "不存储用户登录凭据"]
+    docs_url: "https://playwright.dev/"
+    sota_source_level: S1
+
+  # ═══════════════════════════════════════════
+  # 知识管理
+  # ═══════════════════════════════════════════
+  - id: obsidian_vault
+    name: "Obsidian Vault"
+    category: knowledge_management
+    capabilities: [ReadWiki, WriteWiki, WikiLink, TagSearch, FrontmatterRead]
+    input_types: [markdown, wikilink]
+    output_types: [markdown, wikilink]
+    requires_api_key: false
+    cost_model: free
+    status: preferred
+    risk_level: low
+    fallbacks: []
+    limitations: ["文件系统级操作", "不通过 Obsidian API"]
+    docs_url: "https://help.obsidian.md/"
+    sota_source_level: S0
+
+  - id: zotero
+    name: "Zotero"
+    category: citation_management
+    capabilities: [CitationManagement, PDFStorage, MetadataStorage, CSLFormatting]
+    input_types: [pdf, doi, isbn]
+    output_types: [citation, bibliography, pdf]
+    install_command: "winget install Zotero.Zotero"
+    healthcheck_command: "zotero --version"
+    requires_api_key: true
+    api_key_env_var: ZOTERO_API_KEY
+    api_key_obtain_url: "https://www.zotero.org/settings/keys"
+    cost_model: free
+    status: preferred
+    risk_level: low
+    fallbacks: [manual_bibtex]
+    limitations: ["需要本地运行 Zotero 桌面版", "API Key 需手动在 Zotero 设置中创建"]
+    docs_url: "https://www.zotero.org/support/dev/web_api/v3/start"
+    sota_source_level: S0
+
+  # ═══════════════════════════════════════════
+  # 数据库与搜索
+  # ═══════════════════════════════════════════
+  - id: postgresql
+    name: "PostgreSQL + pgvector"
+    category: knowledge_management
+    capabilities: [StructuredStorage, VectorSearch, SQLQuery, FullTextSearch]
+    input_types: [sql, data]
+    output_types: [query_result, data]
+    install_command: "docker compose up -d postgres"
+    healthcheck_command: "docker exec omega-postgres pg_isready -U omega"
+    requires_api_key: false
+    cost_model: open_source
+    status: integrated
+    risk_level: low
+    fallbacks: [sqlite]
+    limitations: ["需 Docker 运行"]
+    docs_url: "https://www.postgresql.org/docs/"
+    sota_source_level: S1
+
+  - id: qdrant
+    name: "Qdrant Vector Database"
+    category: vector_search
+    capabilities: [VectorSearch, SemanticSearch, SimilarityRetrieval]
+    input_types: [vector, query]
+    output_types: [search_result, similarity_score]
+    install_command: "docker compose up -d qdrant"
+    healthcheck_command: "curl -s http://localhost:6333/collections"
+    requires_api_key: false
+    cost_model: open_source
+    status: integrated
+    risk_level: low
+    fallbacks: [postgresql]
+    limitations: ["阶段 2 才填充索引", "需 Docker 运行"]
+    docs_url: "https://qdrant.tech/documentation/"
+    sota_source_level: S1
+
+  # ═══════════════════════════════════════════
+  # 文件处理与转换
+  # ═══════════════════════════════════════════
+  - id: pandoc
+    name: "Pandoc"
+    category: file_processing
+    capabilities: [FormatConversion, DocumentRendering]
+    input_types: [markdown, latex, docx, html]
+    output_types: [markdown, latex, docx, html, pdf]
+    install_command: "winget install JohnMacFarlane.Pandoc"
+    healthcheck_command: "pandoc --version"
+    requires_api_key: false
+    cost_model: open_source
+    status: preferred
+    risk_level: low
+    fallbacks: []
+    limitations: ["复杂排版需手动微调"]
+    docs_url: "https://pandoc.org/"
+    sota_source_level: S0
+
+  # ═══════════════════════════════════════════
+  # 数据分析和图表
+  # ═══════════════════════════════════════════
+  - id: python_data_science
+    name: "Python Data Science Stack"
+    category: data_analysis
+    capabilities: [DataAnalysis, StatisticalModeling, ChartGeneration, MachineLearning]
+    input_types: [csv, json, excel, sql]
+    output_types: [chart, table, model, report]
+    install_command: "pip install pandas scipy matplotlib seaborn scikit-learn"
+    healthcheck_command: "python -c 'import pandas; import matplotlib; print(\"OK\")'"
+    requires_api_key: false
+    cost_model: open_source
+    status: preferred
+    risk_level: low
+    fallbacks: []
+    limitations: []
+    docs_url: "https://pandas.pydata.org/docs/"
+    sota_source_level: S1
+
+  # ═══════════════════════════════════════════
+  # 实时信息
+  # ═══════════════════════════════════════════
+  - id: perplexity_api
+    name: "Perplexity API"
+    category: language_engine
+    capabilities: [RealTimeSearch, FactChecking, SourceCitation]
+    input_types: [query]
+    output_types: [answer, citation]
+    requires_api_key: true
+    api_key_env_var: PERPLEXITY_API_KEY
+    api_key_obtain_url: "https://www.perplexity.ai/settings/api"
+    cost_model: paid_per_use
+    status: candidate
+    risk_level: low
+    fallbacks: [brave_search_mcp, deepseek_api]
+    limitations: ["深度不及 Deep Research", "不适合学术文献检索"]
+    docs_url: "https://docs.perplexity.ai/"
+    sota_source_level: S1
+    notes: "实时搜索增强引擎。需 PERPLEXITY_API_KEY。不可用时降级到 DeepSeek 训练知识。"
+
+  # ═══════════════════════════════════════════
+  # MCP Servers
+  # ═══════════════════════════════════════════
+  - id: filesystem_mcp
+    name: "Filesystem MCP Server"
+    category: mcp_server
+    capabilities: [FileRead, FileWrite, DirectoryList, SecureFileOps]
+    input_types: [path]
+    output_types: [file_content, directory_tree]
+    install_command: "npx -y @modelcontextprotocol/server-filesystem {OMEGA_HOME}/omega-workspace"
+    healthcheck_command: "npx -y @modelcontextprotocol/server-filesystem --version"
+    requires_api_key: false
+    cost_model: open_source
+    status: preferred
+    risk_level: low
+    fallbacks: []
+    limitations: ["仅限指定目录树内操作", "防止路径穿越"]
+    docs_url: "https://github.com/modelcontextprotocol/servers"
+    sota_source_level: S0
+
+  - id: github_mcp
+    name: "GitHub MCP Server"
+    category: mcp_server
+    capabilities: [RepoManagement, IssueTracking, CodeSearch, PRCreation]
+    input_types: [git_command, query]
+    output_types: [repo_info, search_result]
+    install_command: "npm install -g @modelcontextprotocol/server-github"
+    healthcheck_command: "npx -y @modelcontextprotocol/server-github --version"
+    requires_api_key: true
+    api_key_env_var: GITHUB_TOKEN
+    api_key_obtain_url: "https://github.com/settings/tokens"
+    cost_model: free
+    status: integrated
+    risk_level: medium
+    fallbacks: [git_cli]
+    limitations: ["需要 GitHub Personal Access Token"]
+    docs_url: "https://github.com/modelcontextprotocol/servers"
+    sota_source_level: S0
+
+  # ═══════════════════════════════════════════
+  # 补充：已注册的 Fallback 工具
+  # ═══════════════════════════════════════════
+  # 以下工具在其他工具中作为 fallback 被引用，必须注册否则 fallback 链断裂。
+  # 部分为轻量/手动 fallback（标记为 manual_fallback 或 system_builtin）。
+
+  - id: openalex_api
+    name: "OpenAlex API"
+    category: literature_search
+    capabilities: [AcademicSearch, MetadataRetrieval, CitationNetwork]
+    input_types: [query, doi]
+    output_types: [citation_list, abstract]
+    install_command: "pip install requests"
+    healthcheck_command: "python -c 'import requests; r=requests.get(\"https://api.openalex.org/works?per_page=1\"); print(\"OK\" if r.status_code==200 else \"FAIL\")'"
+    requires_api_key: false
+    cost_model: free
+    status: integrated
+    risk_level: low
+    fallbacks: []
+    limitations: ["覆盖度不及 PubMed", "响应速度较慢", "部分文献元数据不完整"]
+    docs_url: "https://docs.openalex.org/"
+    sota_source_level: S1
+    notes: "完全开放的学术文献 API，覆盖 2.5 亿+ 学术作品。作为 PubMed/Semantic Scholar 的最终兜底。"
+
+  - id: brave_search_mcp
+    name: "Brave Search MCP Server"
+    category: mcp_server
+    capabilities: [WebSearch, RealTimeSearch]
+    input_types: [query]
+    output_types: [search_result, snippet]
+    install_command: "npx -y @modelcontextprotocol/server-brave-search"
+    healthcheck_command: "npx -y @modelcontextprotocol/server-brave-search --version"
+    requires_api_key: true
+    api_key_env_var: BRAVE_API_KEY
+    api_key_obtain_url: "https://brave.com/search/api/"
+    cost_model: free_tier
+    status: integrated
+    risk_level: low
+    fallbacks: []
+    limitations: ["免费额度有限", "中文搜索质量一般"]
+    docs_url: "https://github.com/modelcontextprotocol/servers"
+    sota_source_level: S1
+    notes: "Perplexity 的免费 fallback。需 BRAVE_API_KEY。在 mcp-config.json 中可选启用。"
+
+  - id: git_cli
+    name: "Git CLI (System)"
+    category: code_execution
+    capabilities: [GitOperation, RepoManagement]
+    input_types: [git_command]
+    output_types: [git_output]
+    requires_api_key: false
+    cost_model: open_source
+    status: system_builtin
+    risk_level: low
+    fallbacks: []
+    limitations: ["仅本地操作，无 GitHub API 功能（Issue/PR）"]
+    docs_url: "https://git-scm.com/doc"
+    sota_source_level: S0
+    notes: "系统内置 Git CLI。作为 GitHub MCP Server 的无网络/无 Token 兜底。"
+
+  - id: sqlite
+    name: "SQLite (System)"
+    category: knowledge_management
+    capabilities: [StructuredStorage, SQLQuery]
+    input_types: [sql, data]
+    output_types: [query_result]
+    requires_api_key: false
+    cost_model: open_source
+    status: system_builtin
+    risk_level: low
+    fallbacks: []
+    limitations: ["无向量搜索", "单文件数据库", "并发写入有限"]
+    docs_url: "https://www.sqlite.org/docs.html"
+    sota_source_level: S0
+    notes: "Python 标准库自带 sqlite3。作为 PostgreSQL 的零依赖 fallback（PostgreSQL 不可用时自动降级）。"
+
+  - id: manual_bibtex
+    name: "Manual BibTeX Export"
+    category: citation_management
+    capabilities: [CitationManagement, CSLFormatting]
+    input_types: [citation_data]
+    output_types: [bibtex]
+    requires_api_key: false
+    cost_model: free
+    status: manual_fallback
+    risk_level: low
+    fallbacks: []
+    limitations: ["需用户手动操作", "不含全文 PDF", "不适合大批量文献"]
+    docs_url: "https://www.zotero.org/support/kb/exporting"
+    sota_source_level: S2
+    notes: "手动 fallback——当 Zotero API Key 未配置时，提示用户从 Zotero 导出 BibTeX/RIS 文件手动导入。这不是可自动调用的工具，是一个用户操作提示。"

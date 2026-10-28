@@ -1,0 +1,162 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://omega-system/schemas/outcome_package.schema.json",
+  "title": "Multimodal Outcome Package",
+  "description": "Omega 多模态成果包 schema——定义任务完成后的交付物结构和元数据。对应设计文档 Multimodal Outcome Package.md。",
+  "type": "object",
+  "required": ["package_id", "task_id", "created_at", "modalities", "files"],
+  "properties": {
+    "package_id": {
+      "type": "string",
+      "pattern": "^omega-outcome-\\d{8}-\\d{3}$",
+      "description": "成果包唯一 ID，格式 omega-outcome-YYYYMMDD-NNN"
+    },
+    "task_id": {
+      "type": "string",
+      "description": "关联的任务契约 ID"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "成果包生成时间（ISO 8601）"
+    },
+    "modalities": {
+      "type": "array",
+      "minItems": 1,
+      "description": "成果包包含的模态类型列表",
+      "items": {
+        "type": "string",
+        "enum": [
+          "text_markdown",
+          "text_latex",
+          "pdf",
+          "docx",
+          "html",
+          "csv",
+          "json",
+          "yaml",
+          "chart_png",
+          "chart_svg",
+          "image_png",
+          "image_svg",
+          "video_mp4",
+          "audio_mp3",
+          "subtitle_srt",
+          "subtitle_vtt",
+          "storyboard_yaml",
+          "narration_script",
+          "bibtex",
+          "ris",
+          "code_python",
+          "code_notebook",
+          "dashboard_html",
+          "presentation_pptx",
+          "animation_manim",
+          "animation_blender"
+        ]
+      }
+    },
+    "files": {
+      "type": "array",
+      "minItems": 1,
+      "description": "产物文件列表",
+      "items": {
+        "type": "object",
+        "required": ["path", "modality", "description"],
+        "properties": {
+          "path": {
+            "type": "string",
+            "description": "文件相对路径（相对于成果包根目录）"
+          },
+          "modality": {
+            "type": "string",
+            "description": "文件所属模态"
+          },
+          "description": {
+            "type": "string",
+            "description": "文件内容简述"
+          },
+          "size_bytes": {
+            "type": "integer",
+            "description": "文件大小（字节）"
+          },
+          "sha256": {
+            "type": "string",
+            "description": "文件 SHA-256 哈希"
+          },
+          "generated_by": {
+            "type": "string",
+            "description": "生成此文件的工具 ID"
+          }
+        }
+      }
+    },
+    "metrics": {
+      "type": "object",
+      "description": "质量指标和统计信息",
+      "properties": {
+        "total_files": { "type": "integer" },
+        "total_size_bytes": { "type": "integer" },
+        "generation_duration_seconds": { "type": "number" },
+        "tool_calls_count": { "type": "integer" },
+        "human_interventions": { "type": "integer" },
+        "quality_score": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "整体质量评分（0-1）"
+        }
+      }
+    },
+    "verification": {
+      "type": "object",
+      "description": "验证结果",
+      "properties": {
+        "verified": { "type": "boolean" },
+        "verified_by": {
+          "type": "string",
+          "enum": ["critic_agent", "human", "auto_check", "none"]
+        },
+        "issues": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "severity": { "type": "string", "enum": ["error", "warning", "info"] },
+              "file": { "type": "string" },
+              "description": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "description": "溯源信息",
+      "properties": {
+        "task_contract_path": { "type": "string" },
+        "agent_chain": {
+          "type": "array",
+          "description": "参与生成的 Agent ID 列表（按调用顺序）",
+          "items": { "type": "string" }
+        },
+        "tool_chain": {
+          "type": "array",
+          "description": "使用的工具 ID 列表（按调用顺序）",
+          "items": { "type": "string" }
+        },
+        "input_sources": {
+          "type": "array",
+          "description": "输入数据/文献来源",
+          "items": {
+            "type": "object",
+            "properties": {
+              "type": { "type": "string", "enum": ["doi", "pmid", "url", "file", "wiki_page"] },
+              "value": { "type": "string" }
+            }
+          }
+        }
+      }
+    }
+  }
+}

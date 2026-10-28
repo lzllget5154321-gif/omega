@@ -1,0 +1,62 @@
+# Omega capability-role engine resolution policy
+# Concrete model IDs are discovered at runtime. Do not pin a product release here.
+resolution_mode: capability_role_with_ordered_fallback
+config_version: "3.0"
+source_of_truth: model_capabilities.yaml
+design_principle: "Codex-first, quality-first, version-resilient, fail closed"
+
+invariants:
+  primary_build_surface: codex_cli
+  primary_runtime_provider: openai_api
+  native_anthropic_api: forbidden
+  notebooklm: excluded
+  local_model_activation: explicit_disaster_recovery_only
+  preserve_unknown_ids: true
+  preserve_unknown_settings: true
+
+runtime_discovery:
+  timeout_seconds: 2
+  on_success: "select the best discovered model satisfying the capability role"
+  on_failure: "use the configured provider default or continue to the next provider"
+  cache: process_lifetime
+  never_delete_unknown_model_ids: true
+
+routing_strategies:
+  engineering_primary:
+    task_types: [code_generation, code_review, tool_learning, system_maintenance]
+    preference: [codex_session, openai_api, openrouter_claude_messages, domestic_claude_messages, domestic_openai_compatible, local_disaster_recovery]
+  quality_sensitive:
+    task_types: [academic_writing, literature_review, medical_research, meta_analysis, task_planning]
+    stages: [synthesis, review]
+    preference: [codex_session, openai_api, openrouter_claude_messages, domestic_claude_messages, domestic_openai_compatible, local_disaster_recovery]
+  cost_sensitive:
+    task_types: [literature_search, knowledge_ingestion, knowledge_query, data_analysis, file_processing]
+    stages: [perception, extraction, analysis, transformation, execution]
+    preference: [codex_session, openai_api, domestic_openai_compatible, openrouter_claude_messages, domestic_claude_messages, local_disaster_recovery]
+  realtime_search:
+    task_types: [realtime_search, tool_comparison]
+    stages: [perception]
+    preference: [perplexity_api, brave_search_mcp, playwright_mcp]
+  general:
+    preference: [codex_session, openai_api, domestic_openai_compatible, openrouter_claude_messages, domestic_claude_messages, local_disaster_recovery]
+
+provider_aliases:
+  gpt4_api: openai_api
+  claude_api: openrouter_claude_messages
+  claude_code: codex_session
+tool_aliases:
+  claude_code: codex_cli
+
+compatibility_guards:
+  - "claude_api is a historical ID only; it resolves to a configured OpenRouter or domestic Claude Messages endpoint"
+  - "reject api.anthropic.com and all native Anthropic credential paths"
+  - "aliases do not rewrite persisted history; migrations write a new validated file atomically"
+  - "unknown provider/model IDs round-trip unchanged and remain inactive until health-checked"
+
+healthcheck:
+  timeout_seconds: 30
+  discovery_timeout_seconds: 2
+  retry: 2
+  minimum_online_engines: 0
+  codex_session_satisfies_build_requirement: true
+  local_disaster_recovery_requires_explicit_enable: true

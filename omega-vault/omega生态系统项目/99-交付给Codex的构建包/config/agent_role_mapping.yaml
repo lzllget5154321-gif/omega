@@ -1,0 +1,201 @@
+# Omega Agent 角色映射表 — 概念 Agent → 运行时 Agent → 未来 Agent
+# ===================================================================
+# 解决方案论（01-方法论/功能优先总方法论）中生产者 Agent 名单与
+# 最终形态（OMEGA_FINAL_FORM.md）11 个运行时 Agent 之间的不一致。
+#
+# 三层映射：
+#   L1 概念 Agent — 方法论中描述的系统"应该做什么"（功能角色，非可执行单元）
+#   L2 运行时 Agent — v1.0.0-full 中的 11 个可调度执行单元
+#   L3 未来 Agent — 计划但尚未实现的 Agent（阶段 2/3 或特定场景）
+#
+# 映射逻辑：
+#   - 一个概念 Agent 可能映射到多个运行时 Agent（组合执行）
+#   - 一个概念 Agent 可能被多个运行时 Agent 覆盖（能力重叠）
+#   - 标记 "future" 的概念 Agent 尚未有运行时对应
+
+version: "1.0"
+description: "概念 Agent（方法论）→ 运行时 Agent（v1.0.0-full）+ 未来阶段 Agent 映射"
+
+mappings:
+  # ═══════════════════════════════════════════
+  # 方法论生产者 Agent → 运行时 Agent 映射
+  # ═══════════════════════════════════════════
+  - concept_agent: "File Editor"
+    methodology_ref: "功能优先总方法论 §生产者 Agent"
+    runtime_agents: [coder, toolsmith]
+    mapping_type: decomposition  # 概念角色被拆分为多个运行时 Agent
+    notes: "File Editor 的职责（编辑代码/文件/文档）由 coder（代码生成与测试）和 toolsmith（文件处理工具）共同承担"
+    stage: full
+
+  - concept_agent: "Journal Matcher"
+    methodology_ref: "功能优先总方法论 §生产者 Agent"
+    runtime_agents: [researcher, medical_evidence_agent]
+    mapping_type: composition  # 概念角色需要多个 Agent 协作
+    notes: "Journal Matcher（匹配目标期刊）需要 researcher 检索期刊信息 + medical_evidence_agent 评估适配度"
+    stage: full
+
+  - concept_agent: "Submission Navigator"
+    methodology_ref: "功能优先总方法论 §生产者 Agent"
+    runtime_agents: [browser_operator]
+    mapping_type: delegated  # 由浏览器 Agent 部分承担
+    notes: "Submission Navigator 的投稿辅助功能由 browser_operator（表单预填/截图）承担。⚠️ 实际 Submit 操作必须人类确认（方法论安全红线）"
+    stage: full
+    safety_note: "禁止自动提交投稿表单——browser_operator 仅预填+截图，Submit 由用户手动执行"
+
+  - concept_agent: "Data Analyst"
+    methodology_ref: "功能优先总方法论 §生产者 Agent"
+    runtime_agents: [data_analyst]
+    mapping_type: direct  # 直接映射
+    notes: "Data Analyst 的核心能力（统计分析/图表生成）由 data_analyst 承担"
+    stage: mfe
+
+  - concept_agent: "Literature Reviewer"
+    methodology_ref: "功能优先总方法论 §生产者 Agent"
+    runtime_agents: [researcher, writer, critic, medical_evidence_agent]
+    mapping_type: pipeline  # 概念角色对应一个完整 Agent 流水线
+    notes: "文献综述需要 researcher（检索）→ medical_evidence_agent（证据评估）→ writer（综合写作）→ critic（质量审查）"
+    stage: mfe
+
+  - concept_agent: "Meta-Analyst"
+    methodology_ref: "功能优先总方法论 §生产者 Agent"
+    runtime_agents: [medical_evidence_agent, data_analyst, writer]
+    mapping_type: pipeline
+    notes: "Meta 分析需要 medical_evidence_agent（GRADE/异质性评估）+ data_analyst（统计计算）+ writer（报告撰写）"
+    stage: full
+
+  # ═══════════════════════════════════════════
+  # 方法论中提及但尚未有运行时对应的 Agent
+  # ═══════════════════════════════════════════
+  - concept_agent: "Visualization Designer"
+    methodology_ref: "功能优先总方法论 §生产者 Agent"
+    runtime_agents: []  # 无直接运行时对应
+    mapping_type: future
+    notes: "科学可视化在 Phase 9 通过 viz_executor.py 实现，但尚未抽象为独立 Agent。由 coder 临时承担"
+    planned_stage: "Phase 9+ (stage 2)"
+
+  - concept_agent: "Presentation Builder"
+    methodology_ref: "功能优先总方法论 §生产者 Agent"
+    runtime_agents: [coder]
+    mapping_type: delegated
+    notes: "PPT/演示文稿生成由 ppt_generator.py 模块处理，由 coder Agent 调用"
+    stage: full
+
+  # ═══════════════════════════════════════════
+  # 运行时 Agent 的能力覆盖说明
+  # ═══════════════════════════════════════════
+  - concept_agent: "Tool Scout"
+    methodology_ref: "功能优先总方法论 §生产者 Agent"
+    runtime_agents: [toolsmith]
+    mapping_type: direct
+    notes: "直接映射——Toolsmith 的 7 步闭环（发现→安装→适配→测试→注册→Skill→隔离验收）完全覆盖"
+    stage: mfe
+
+  - concept_agent: "Knowledge Curator"
+    methodology_ref: "功能优先总方法论 §生产者 Agent"
+    runtime_agents: [knowledge_steward]
+    mapping_type: direct
+    notes: "直接映射——知识库维护（创建/更新/lint/索引同步）全部由 knowledge_steward 承担"
+    stage: mfe
+
+# ═══════════════════════════════════════════
+# 11 个运行时 Agent 完整列表（v1.0.0-full）
+# ═══════════════════════════════════════════
+runtime_agents_summary:
+  - id: researcher
+    role: "信息检索与搜集"
+    autonomy: L2
+    stage: mfe
+    covers_concepts: [Literature Reviewer, Journal Matcher]
+
+  - id: writer
+    role: "内容撰写与润色"
+    autonomy: L1
+    stage: mfe
+    covers_concepts: [Literature Reviewer, Meta-Analyst]
+
+  - id: critic
+    role: "质量评估与审校"
+    autonomy: L2
+    stage: mfe
+    covers_concepts: [Literature Reviewer]
+
+  - id: planner
+    role: "任务规划与分解"
+    autonomy: L3
+    stage: mfe  # 静态路由（MFE）→ 动态规划（Full）
+    covers_concepts: []
+
+  - id: knowledge_steward
+    role: "知识库维护"
+    autonomy: L3
+    stage: mfe
+    covers_concepts: [Knowledge Curator]
+
+  - id: medical_evidence_agent
+    role: "医学证据评估"
+    autonomy: L1
+    stage: full
+    covers_concepts: [Journal Matcher, Literature Reviewer, Meta-Analyst]
+
+  - id: data_analyst
+    role: "数据分析与统计"
+    autonomy: L2
+    stage: full
+    covers_concepts: []
+
+  - id: toolsmith
+    role: "工具发现与注册"
+    autonomy: L3
+    stage: mfe
+    covers_concepts: [Tool Scout, File Editor]
+
+  - id: browser_operator
+    role: "浏览器自动化"
+    autonomy: L2
+    stage: full
+    covers_concepts: [Submission Navigator]
+
+  - id: coder
+    role: "代码生成与测试"
+    autonomy: L2
+    stage: mfe
+    covers_concepts: [File Editor, Data Analyst, Presentation Builder, Meta-Analyst]
+
+  - id: router
+    role: "工具与 Agent 路由"
+    autonomy: L3
+    stage: full
+    covers_concepts: []  # 协调角色，不直接对应概念 Agent
+
+# ═══════════════════════════════════════════
+# 未来阶段预留 Agent
+# ═══════════════════════════════════════════
+future_agents:
+  - id: visualization_designer
+    role: "科学可视化设计"
+    planned_stage: "Phase 9+ (stage 2)"
+    covers_concepts: [Visualization Designer]
+
+  - id: animation_director
+    role: "3D 动画导演（manim/blender）"
+    planned_stage: "Phase 9+ (stage 3)"
+    notes: "重度依赖 GPU 和特定运行时，标记为尽力而为"
+
+  - id: submission_assistant
+    role: "投稿流程辅助"
+    planned_stage: "stage 3"
+    notes: "仅辅助——实际 Submit 始终需人类确认"
+    safety_note: "方法论安全红线：禁止自动提交"
+
+# ═══════════════════════════════════════════
+# 使用说明（给 Codex）
+# ═══════════════════════════════════════════
+usage_notes: |
+  当 Codex 遇到方法论中描述的 Agent 时：
+  1. 在此文件中查找 concept_agent → 确定 mapping_type
+  2. 若 mapping_type = direct/delegated/decomposition/composition/pipeline
+     → 分配给对应的 runtime_agents（多个时按 pipeline 顺序调度）
+  3. 若 mapping_type = future
+     → 报告用户"此 Agent 尚未实现，计划阶段 X"，回退到最接近的运行时 Agent
+  4. 此文件也可作为 Agent 扩展的规划参考——当某概念 Agent 的使用频率累积到阈值时，
+     考虑升级为独立运行时 Agent

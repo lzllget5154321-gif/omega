@@ -1,0 +1,127 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://omega-system/schemas/action_memory.schema.json",
+  "title": "Action Memory Record",
+  "description": "Omega 行动记忆记录 schema——定义每次任务执行后的经验沉淀格式。用于 Planner 的历史学习和优化。对应设计文档 Dynamic Task Planner 和 Action Memory。",
+  "type": "object",
+  "required": ["memory_id", "task_id", "timestamp", "action_type", "outcome"],
+  "properties": {
+    "memory_id": {
+      "type": "string",
+      "pattern": "^mem-\\d{14}-[a-f0-9]{6}$",
+      "description": "记忆唯一 ID，格式 mem-YYYYMMDDHHMMSS-随机6位hex"
+    },
+    "task_id": {
+      "type": "string",
+      "description": "关联的任务契约 ID"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "记忆记录时间"
+    },
+    "action_type": {
+      "type": "string",
+      "enum": [
+        "tool_selection",
+        "agent_selection",
+        "step_execution",
+        "fallback_trigger",
+        "error_encountered",
+        "optimization_found",
+        "gap_detected",
+        "human_intervention",
+        "plan_deviation",
+        "success_pattern"
+      ],
+      "description": "行动类型"
+    },
+    "outcome": {
+      "type": "string",
+      "enum": ["success", "partial_success", "failure", "degraded", "timeout"],
+      "description": "行动结果"
+    },
+    "context": {
+      "type": "object",
+      "description": "行动上下文",
+      "properties": {
+        "task_type": { "type": "string" },
+        "stage": { "type": "string" },
+        "tool_used": { "type": "string" },
+        "agent_used": { "type": "string" },
+        "quality_profile": { "type": "string" },
+        "input_summary": {
+          "type": "string",
+          "maxLength": 200,
+          "description": "输入的简短摘要"
+        }
+      }
+    },
+    "metrics": {
+      "type": "object",
+      "description": "量化指标",
+      "properties": {
+        "duration_seconds": { "type": "number" },
+        "api_calls_count": { "type": "integer" },
+        "tokens_used": { "type": "integer" },
+        "cost_estimate_usd": { "type": "number" },
+        "retry_count": { "type": "integer" }
+      }
+    },
+    "lesson": {
+      "type": "object",
+      "description": "经验教训",
+      "required": ["summary"],
+      "properties": {
+        "summary": {
+          "type": "string",
+          "maxLength": 500,
+          "description": "一句话经验总结"
+        },
+        "what_worked": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "what_didnt_work": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "suggestion": {
+          "type": "string",
+          "description": "对 Planner 的优化建议"
+        },
+        "should_update_routing": {
+          "type": "boolean",
+          "description": "是否应更新路由表"
+        },
+        "should_create_skill": {
+          "type": "boolean",
+          "description": "是否应结晶为 Skill"
+        }
+      }
+    },
+    "tags": {
+      "type": "array",
+      "description": "便于检索的标签",
+      "items": { "type": "string" }
+    },
+    "ttl_days": {
+      "type": "integer",
+      "minimum": 1,
+      "default": 90,
+      "description": "记忆有效期（天），过期后权重衰减但不删除"
+    },
+    "weight": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "default": 0.5,
+      "description": "记忆权重——新记忆 0.5，验证过的正面记忆 >0.7，负面记忆保留原权重供参考"
+    },
+    "related_memories": {
+      "type": "array",
+      "description": "关联的其他记忆 ID",
+      "items": { "type": "string" }
+    }
+  }
+}

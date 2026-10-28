@@ -1,0 +1,101 @@
+{
+  "$schema": "https://raw.githubusercontent.com/modelcontextprotocol/specification/main/schema/mcp-config.schema.json",
+  "comment": "// Omega MFE 阶段 MCP Server 配置模板。Codex 构建时复制到 omega-runtime/mcp-servers/mcp-config.json 并根据实际安装路径调整。",
+
+  "mcpServers": {
+    "filesystem": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-filesystem",
+        "{OMEGA_HOME}/omega-workspace",
+        "{OMEGA_HOME}/omega-vault/wiki"
+      ],
+      "description": "安全文件系统操作——仅限 omega-workspace/ 和 wiki/ 目录。{OMEGA_HOME} 由 Codex 构建时根据实际部署路径渲染替换"
+    },
+
+    "postgres": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-postgres",
+        "postgresql://omega:${POSTGRES_PASSWORD}@localhost:5432/omega"
+      ],
+      "description": "PostgreSQL 数据库查询（仅本地连接）",
+      "env": {
+        "POSTGRES_PASSWORD": "${POSTGRES_PASSWORD}"
+      }
+    },
+
+    "qdrant": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-qdrant",
+        "--url",
+        "http://localhost:6333"
+      ],
+      "description": "Qdrant 向量搜索——阶段 2 填充索引后启用"
+    },
+
+    "playwright": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@playwright/mcp@latest",
+        "--browser",
+        "chromium"
+      ],
+      "description": "浏览器自动化——导航/截图/表单预填。不自动提交表单。",
+      "disabled": false
+    },
+
+    "github": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-github"
+      ],
+      "description": "GitHub 操作——仓库管理/Issue/PR/搜索",
+      "env": {
+        "GITHUB_PERSONAL_ACCESS_TOKEN": "${GITHUB_TOKEN}"
+      },
+      "disabled": false
+    },
+
+    "brave-search": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-brave-search"
+      ],
+      "description": "Brave Search API——实时网络搜索",
+      "env": {
+        "BRAVE_API_KEY": "${BRAVE_API_KEY}"
+      },
+      "disabled": true,
+      "comment": "阶段 2 启用"
+    },
+
+    "sequential-thinking": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-sequential-thinking"
+      ],
+      "description": "顺序思考——复杂推理任务的分步思考工具",
+      "disabled": false
+    },
+
+    "memory": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-memory"
+      ],
+      "description": "持久化记忆——跨会话知识图谱存储",
+      "disabled": true,
+      "comment": "阶段 2 启用"
+    }
+  }
+}

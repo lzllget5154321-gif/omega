@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://omega-system/schemas/legacy_agent_card.schema.json",
+  "title": "Legacy Agent Card Compatibility Input",
+  "description": "Read-only migration input. Unknown fields and legacy model IDs are preserved in the lossless envelope, never copied into the current Agent Card.",
+  "type": "object",
+  "required": ["id"],
+  "properties": {
+    "id": {"type": "string"},
+    "preferred_engine": {"type": ["string", "null"]},
+    "preferred_engines": {
+      "type": "array",
+      "items": {}
+    },
+    "route_history": {},
+    "provider": {},
+    "model": {}
+  },
+  "additionalProperties": true,
+  "x-omega-compatibility": {
+    "current_schema": "agent_card.schema.json",
+    "preserve_unknown": true,
+    "copy_legacy_preferred_engine_to_current": false,
+    "security_validation_before_envelope": true
+  }
+}

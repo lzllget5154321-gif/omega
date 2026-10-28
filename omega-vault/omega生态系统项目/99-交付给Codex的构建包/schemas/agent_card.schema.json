@@ -1,0 +1,92 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://omega-system/schemas/agent_card.schema.json",
+  "title": "Agent Card",
+  "description": "Omega Agent 注册表中的单条 Agent 定义。Productive Agent Society 据此调度。",
+  "type": "object",
+  "required": ["id", "role", "allowed_tools", "capability_role"],
+  "not": {
+    "anyOf": [
+      {"required": ["model"]},
+      {"required": ["provider"]},
+      {"required": ["preferred_model"]},
+      {"required": ["preferred_provider"]}
+    ]
+  },
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]*$",
+      "description": "Agent 唯一标识符"
+    },
+    "role": {
+      "type": "string",
+      "description": "Agent 的角色名称（中文）"
+    },
+    "description": {
+      "type": "string",
+      "description": "Agent 职责的简短描述"
+    },
+    "allowed_tools": {
+      "type": "array",
+      "items": {"type": "string"},
+      "description": "此 Agent 可以调用的工具 ID 列表"
+    },
+    "forbidden_tools": {
+      "type": "array",
+      "items": {"type": "string"},
+      "default": [],
+      "description": "此 Agent 禁止调用的工具 ID 列表"
+    },
+    "input_schema": {
+      "type": "object",
+      "description": "Agent 接受的输入结构（自由格式 JSON）"
+    },
+    "output_schema": {
+      "type": "object",
+      "description": "Agent 产生的输出结构"
+    },
+    "handoff_targets": {
+      "type": "array",
+      "items": {"type": "string"},
+      "default": [],
+      "description": "可以交接任务的其他 Agent ID"
+    },
+    "review_required": {
+      "type": "boolean",
+      "default": false,
+      "description": "此 Agent 的输出是否需要 Critic Agent 审查"
+    },
+    "autonomy_level": {
+      "type": "string",
+      "enum": ["L0", "L1", "L2", "L3"],
+      "default": "L1",
+      "description": "L0=全自动 / L1=自动+通知 / L2=关键步骤需确认 / L3=高自治但仍受风险门禁约束"
+    },
+    "preferred_engine": {
+      "type": "string",
+      "enum": ["engineering_primary", "quality_reasoning", "academic_writing", "economical_general", "realtime_search"],
+      "description": "仅允许稳定 capability role；不得固定具体模型或工具版本"
+    },
+    "engine_strategy": {
+      "type": "string",
+      "enum": ["engineering_primary", "quality_sensitive", "cost_sensitive", "economical_general", "realtime_search", "general"],
+      "description": "能力角色路由策略；具体 provider/model 由 model_capabilities.yaml 和运行时发现决定"
+    },
+    "capability_role": {
+      "type": "string",
+      "enum": ["engineering_primary", "quality_reasoning", "academic_writing", "economical_general", "realtime_search"],
+      "description": "稳定能力角色，不绑定具体模型版本"
+    },
+    "preferred_engines": {
+      "type": "array",
+      "items": {"type": "string"},
+      "description": "按优先级排序的 provider 类别。未知 ID 必须原样保留并在健康检查前保持 inactive"
+    },
+    "stage_affinity": {
+      "type": "array",
+      "items": {"type": "string"},
+      "description": "此 Agent 擅长的任务阶段（perception, extraction, analysis, synthesis, review, transformation, execution, delivery）"
+    }
+  }
+}

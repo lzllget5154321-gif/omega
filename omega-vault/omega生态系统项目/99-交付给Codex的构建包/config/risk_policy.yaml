@@ -1,0 +1,129 @@
+# Omega 风险升级策略（Risk Escalation Policy）
+# ==============================================
+# 四域风险模型——决定每个决策域遇到异常时自动执行什么。
+# Codex 构建时此文件放入 omega-runtime/config/risk_policy.yaml
+
+version: "0.1.0"
+description: "四域风险自动升级策略：Auto / Notify / Confirm / Emergency"
+
+# ── 四个风险域 ──
+domains:
+  - domain: auto
+    name: "自动域"
+    description: "低风险操作，全自动执行，仅记录日志"
+    examples:
+      - "读文件（白名单路径内）"
+      - "pip install 已知安全包"
+      - "docker compose up（已有 compose 文件）"
+      - "执行 pytest（沙箱内）"
+      - "更新 wiki/index.md"
+    auto_behavior: "execute_and_log"
+    notify_user: false
+
+  - domain: notify
+    name: "通知域"
+    description: "中低风险操作，自动执行但通知用户"
+    examples:
+      - "git commit（常规提交）"
+      - "创建新 Agent 实例"
+      - "修改 omega.yaml 非安全字段"
+      - "pip install 新包（白名单外但来源可信）"
+      - "docker compose down && docker compose up（重启服务）"
+    auto_behavior: "execute_and_notify"
+    notify_user: true
+    notification_level: "info"
+
+  - domain: confirm
+    name: "确认域"
+    description: "中高风险操作，必须用户确认后才执行"
+    examples:
+      - "docker compose down -v（删除数据卷）"
+      - "修改 .env 或 API Key 配置"
+      - "执行从未测试过的外部命令"
+      - "删除 wiki/ 页面"
+      - "修改 Omega 核心配置（routing.mode 等）"
+      - "git push 到 remote"
+    auto_behavior: "pause_and_confirm"
+    notify_user: true
+    notification_level: "warning"
+    timeout_minutes: 30  # 超时后拒绝执行
+
+  - domain: emergency
+    name: "紧急域"
+    description: "高风险操作，框架级强制阻止，仅在工具失效时自动触发备选"
+    examples:
+      - "rm -rf / 或等效的破坏性操作"
+      - "修改系统注册表"
+      - "自动提交表单到外部网站"
+      - "上传数据到外部服务器"
+      - "执行未签名的可执行文件"
+    auto_behavior: "block_and_notify"
+    notify_user: true
+    notification_level: "error"
+    # 紧急域的自动升级：主工具连续失败 3 次 → 自动切 fallback
+    auto_fallback_trigger:
+      consecutive_failures: 3
+      window_minutes: 15
+      behavior: "switch_to_fallback_and_notify"
+
+# ── 替换决策矩阵 ──
+# 5 个条件 × 风险域 → 决定是否可以自动替换工具
+replacement_matrix:
+  conditions:
+    - id: same_capability_set
+      name: "能力集相同或超集"
+    - id: benchmark_score_not_lower
+      name: "基准评分不降低"
+    - id: risk_level_not_higher
+      name: "风险等级不升高"
+    - id: no_breaking_changes
+      name: "无破坏性 API 变更"
+    - id: fallback_available
+      name: "回滚路径可用"
+
+  rules:
+    # Auto 域：5 个条件全部满足 → 自动替换
+    - domain: auto
+      required_conditions: [same_capability_set, benchmark_score_not_lower, risk_level_not_higher, no_breaking_changes, fallback_available]
+      action: "auto_replace"
+
+    # Notify 域：满足 4/5 → 自动替换并通知
+    - domain: notify
+      required_conditions: [same_capability_set, benchmark_score_not_lower, no_breaking_changes, fallback_available]
+      action: "auto_replace_and_notify"
+
+    # Confirm 域：满足 3/5 → 推荐替换，等待确认
+    - domain: confirm
+      required_conditions: [same_capability_set, benchmark_score_not_lower, fallback_available]
+      action: "recommend_and_confirm"
+
+    # Emergency 域：工具失效时满足 1/5 → 紧急切换
+    - domain: emergency
+      required_conditions: [fallback_available]
+      action: "emergency_switch"
+
+# ── 回滚策略 ──
+rollback:
+  enabled: true
+  max_rollback_count: 3  # 连续回滚 3 次后锁定，需要人工介入
+  rollback_log_path: "omega-data/logs/rollback.log"
+  auto_rollback_triggers:
+    - "替换后 24h 内错误率 >150% 原工具"
+    - "替换后关键功能测试失败"
+    - "替换后依赖冲突导致其他工具不可用"
+  manual_rollback_command: "omega rollback <tool_id> --to <version>"
+
+# ── quality_profile 对升级的影响 ──
+quality_profile_overrides:
+  strict:
+    description: "严格模式——宁可慢不冒险"
+    auto_domain_shrink: true      # Auto 域缩小
+    confirm_domain_expand: true   # Confirm 域扩大
+    require_benchmark: true       # 必须通过基准测试
+  balanced:
+    description: "平衡模式——默认策略"
+    no_overrides: true
+  permissive:
+    description: "宽松模式——允许更多自动操作"
+    auto_domain_expand: true      # Auto 域扩大
+    skip_non_critical_checks: true
